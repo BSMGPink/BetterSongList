@@ -6,42 +6,50 @@
 #include "Sorters/Models/FolderDateSorter.hpp"
 #include "Sorters/Models/FunctionSorter.hpp"
 
-#include "sdc-wrapper/shared/BeatStarSong.hpp"
 
 namespace BetterSongList {
     static ComparableFunctionSorterWithLegend alphabeticalSongname(
         [](auto a, auto b) -> int {
-            return static_cast<std::u16string_view>(a->get_songName()) < (static_cast<std::u16string_view>(b->get_songName()));
+            return static_cast<std::u16string_view>(a->songName) < (static_cast<std::u16string_view>(b->songName));
         },
-        [](GlobalNamespace::IPreviewBeatmapLevel* song) -> std::string {
-            std::string songName{static_cast<std::string>(song->get_songName())};
+        [](GlobalNamespace::BeatmapLevel* song) -> std::string {
+            std::string songName{static_cast<std::string>(song->songName)};
             return songName.size() > 0 ? songName.substr(0, 1) : "";
         }
     );
 
     static PrimitiveFunctionSorterWithLegend bpm(
         [](auto song){
-            return song->get_beatsPerMinute();
+            return song->beatsPerMinute;
         },
         [](auto song){
-            return fmt::format("{}", std::round(song->get_beatsPerMinute()));
+            return fmt::format("{}", std::round(song->beatsPerMinute));
         }
     );
 
+    // TODO: Support more than one mapper, it's okay for now since most custom songs only have one mapper set
     static ComparableFunctionSorterWithLegend alphabeticalMapper(
         [](auto a, auto b) -> int {
-            return static_cast<std::u16string_view>(a->get_levelAuthorName()) < (static_cast<std::u16string_view>(b->get_levelAuthorName()));
+            StringW mappera = a->allMappers.size() > 0 ? a->allMappers[0] : "";
+            StringW mapperb = b->allMappers.size() > 0 ? b->allMappers[0] : "";
+            return static_cast<std::u16string_view>(mappera) < (static_cast<std::u16string_view>(mapperb));
         }, 
         [](auto song) -> std::string {
-            std::string levelAuthor{static_cast<std::string>(song->get_levelAuthorName())};
+            std::string levelAuthor{static_cast<std::string>(song->allMappers.size() > 0 ? song->allMappers[0] : "")};
             return levelAuthor.size() > 0 ? levelAuthor.substr(0, 1) : "";
         }
     );
 
     static FolderDateSorter downloadTime{};
 
-    static std::optional<float> StarsProcessor(const SDC_wrapper::BeatStarSong* song) {
-        float ret = config.get_sortAsc() ? song->GetMinStarValue() : song->GetMaxStarValue();
+    static std::optional<float> StarsProcessor(const SongDetailsCache::Song* song) {
+        float ret = config.get_sortAsc() ? song->maxStarSS() : song->minStarSS();
+        if (ret == 0) return std::nullopt;
+        return ret;
+    }
+
+    static std::optional<float> StarsProcessorBL(const SongDetailsCache::Song* song) {
+        float ret = config.get_sortAsc() ? song->maxStarBL() : song->minStarBL();
         if (ret == 0) return std::nullopt;
         return ret;
     }
@@ -56,24 +64,36 @@ namespace BetterSongList {
         }
     );
 
+    // TODO: If beatleader gets integrated, remove this
+    static BasicSongDetailsSorterWithLegend blstars(
+        [](auto song){ return StarsProcessorBL(song); },
+        [](auto song) -> std::string {
+            auto y = StarsProcessorBL(song);
+            if (!y.has_value()) return "N/A";
+
+            return fmt::format("{:.1f}", y.value());
+        }
+    );
+
     static const float second = 1.0f / 60.0f;
 
     static PrimitiveFunctionSorterWithLegend songLength(
-        [](auto song){ return song->get_songDuration(); },
+        [](auto song){ return song->songDuration; },
         [](auto song) -> std::string {
-            float duration = song->get_songDuration();
+            float duration = song->songDuration;
             if (duration < 60) return "<1";
             return fmt::format("{}", (int)std::round(duration * second));
         }
     );
 
     static BasicSongDetailsSorterWithLegend beatSaverDate(
-        [](const SDC_wrapper::BeatStarSong* song) -> std::optional<float> { 
-            return song->uploaded_unix_time;
+        [](const SongDetailsCache::Song* song) -> std::optional<float> { 
+            return song->uploadTimeUnix;
         },
-        [](const SDC_wrapper::BeatStarSong* song) -> std::string {
-            auto uploaded = song->uploaded_unix_time;
-            struct tm* tm = localtime(&uploaded);
+        [](const SongDetailsCache::Song* song) -> std::string {
+            auto uploaded = song->uploadTimeUnix;
+            auto time = (time_t) uploaded;
+            struct tm* tm = localtime(&time);
             // since int division is floored, we can get an index for quarter by removing 1 and dividing by 3,
             // then we just add 1 back to get from 0-3 to 1-4
             auto q = ((tm->tm_mon - 1) / 3) + 1;
@@ -101,7 +121,7 @@ namespace BetterSongList {
 
         auto itr = methods.find(name);
         if (itr != methods.end()) {
-            ERROR("sorter with name {} was already registerd!", name);
+            ERROR("sorter with name {} was already registered!", name);
             return false;
         }
 
@@ -113,7 +133,8 @@ namespace BetterSongList {
 		{"Song Name", &alphabeticalSongname},
 		{"Mapper Name", &alphabeticalMapper},
 		{"Download Date", &downloadTime},
-		{"Ranked Stars", &stars},
+        {"BL Stars", &blstars},
+		{"SS Stars", &stars},
 		{"Song Length", &songLength},
 		{"BPM", &bpm},
 		{"BeatSaver Date", &beatSaverDate},

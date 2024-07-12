@@ -2,8 +2,7 @@
 #include "config.hpp"
 #include "logging.hpp"
 
-#include "GlobalNamespace/IPreviewBeatmapLevel.hpp"
-#include "HMUI/TableView_ScrollPositionType.hpp"
+#include "GlobalNamespace/BeatmapLevel.hpp"
 #include "System/Tuple_2.hpp"
 
 template <> struct fmt::formatter<std::optional<int>> : formatter<string_view> {
@@ -31,8 +30,8 @@ namespace BetterSongList::Hooks {
     }
 
     void RestoreTableScroll::LevelCollectionTableView_Init_Prefix(GlobalNamespace::LevelCollectionTableView* self) {
-        if (self->isInitialized && self->tableView != nullptr && self->previewBeatmapLevels != nullptr && !doResetScrollOnNext)
-            scrollToIndex = self->tableView->GetVisibleCellsIdRange()->get_Item1();
+        if (self->_isInitialized && self->_tableView != nullptr && self->_beatmapLevels != nullptr && !doResetScrollOnNext)
+            scrollToIndex = self->_tableView->GetVisibleCellsIdRange()->get_Item1();
 
         doResetScrollOnNext = false;
 		INFO("LevelCollectionTableView.Init():Prefix - scrollToIndex: {}", scrollToIndex);
@@ -40,9 +39,9 @@ namespace BetterSongList::Hooks {
 
     void RestoreTableScroll::LevelCollectionTableView_SetData_PostFix(GlobalNamespace::LevelCollectionTableView* self) {
 		INFO("DoTheFunnySelect -> LevelCollectionTableView.SetData():Postfix scrollToIndex: {}", RestoreTableScroll::scrollToIndex);
-        auto tableView = self->tableView;
-        auto previewBeatmapLevels = self->previewBeatmapLevels;
-        auto showLevelPackHeader = self->showLevelPackHeader;
+        auto tableView = self->_tableView;
+        auto previewBeatmapLevels = self->_beatmapLevels;
+        auto showLevelPackHeader = self->_showLevelPackHeader;
 
         if (!RestoreTableScroll::scrollToIndex.has_value() || RestoreTableScroll::scrollToIndex.value() < 0) return;
 

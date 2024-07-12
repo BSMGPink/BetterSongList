@@ -5,7 +5,7 @@
 Config config;
 
 Configuration& get_config() {
-    static Configuration config({MOD_ID, VERSION});
+    static Configuration config({MOD_ID, VERSION, 0});
     config.Load();
     return config;
 }
@@ -24,7 +24,7 @@ void Config::SaveConfig() {
     Save(lastPack);
     Save(lastSort);
     Save(lastFilter);
-    doc.AddMember("lastCategory", config.get_lastCategory().value, allocator);
+    doc.AddMember("lastCategory", config.get_lastCategory().value__, allocator);
     Save(enableAlphabetScrollBar);
     Save(clearFiltersOnPlaylistSelect);
     Save(modBasegameSearch);
@@ -37,6 +37,7 @@ void Config::SaveConfig() {
     Save(allowPluginSortsAndFilters);
     Save(sortAsc);
     Save(settingsSeenInVersion);
+    Save(preferredLeaderboard);
 
     get_config().Write();
     INFO("Saved Configuration!");
@@ -93,6 +94,7 @@ bool Config::LoadConfig() {
     GET_BOOL(allowPluginSortsAndFilters);
     GET_BOOL(sortAsc);
     GET_STRING(settingsSeenInVersion);
+    GET_STRING(preferredLeaderboard);
 
     if (foundEverything)
         INFO("Loaded Configuration!");

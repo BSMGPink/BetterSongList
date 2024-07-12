@@ -5,14 +5,6 @@
 
 #include "paper/shared/logger.hpp"
 
-namespace BetterSongList
-{
-    class Logging
-    {
-    public:
-        static Logger& getLogger();
-    };
-}
 template <> struct fmt::formatter<::StringW> : formatter<string_view> {
     // parse is inherited from formatter<string_view>.
     template <typename FormatContext>
@@ -21,8 +13,12 @@ template <> struct fmt::formatter<::StringW> : formatter<string_view> {
     }
 };
 
-#define INFO(...) Paper::Logger::fmtLog<Paper::LogLevel::INF>(__VA_ARGS__)
-#define ERROR(...) Paper::Logger::fmtLog<Paper::LogLevel::ERR>(__VA_ARGS__)
-#define CRITICAL(...) Paper::Logger::fmtLog<Paper::LogLevel::ERR>(__VA_ARGS__)
-#define DEBUG(...) Paper::Logger::fmtLog<Paper::LogLevel::DBG>(__VA_ARGS__)
-#define WARNING(...) Paper::Logger::fmtLog<Paper::LogLevel::WRN>(__VA_ARGS__)
+namespace BSLLogger {
+    static constexpr auto Logger = Paper::ConstLoggerContext("BetterSongList");
+}
+
+#define INFO(str, ...) Paper::Logger::fmtLogTag<Paper::LogLevel::INF>(str, "BetterSongList" __VA_OPT__(, __VA_ARGS__))
+#define ERROR(str, ...) Paper::Logger::fmtLogTag<Paper::LogLevel::ERR>(str, "BetterSongList" __VA_OPT__(, __VA_ARGS__))
+#define CRITICAL(str, ...) Paper::Logger::fmtLogTag<Paper::LogLevel::ERR>(str, "BetterSongList" __VA_OPT__(, __VA_ARGS__))
+#define DEBUG(str, ...) Paper::Logger::fmtLogTag<Paper::LogLevel::DBG>(str, "BetterSongList" __VA_OPT__(, __VA_ARGS__))
+#define WARNING(str, ...) Paper::Logger::fmtLogTag<Paper::LogLevel::WRN>(str, "BetterSongList" __VA_OPT__(, __VA_ARGS__))

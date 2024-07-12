@@ -8,13 +8,12 @@
 #include "UnityEngine/WaitForEndOfFrame.hpp"
 #include "UnityEngine/RectTransform.hpp"
 #include "UnityEngine/Vector2.hpp"
-#include "UnityEngine/UI/Button_ButtonClickedEvent.hpp"
 #include "UnityEngine/UI/Button.hpp"
-#include "GlobalNamespace/SharedCoroutineStarter.hpp"
+#include "bsml/shared/BSML/SharedCoroutineStarter.hpp"
 
 #include "System/Tuple_2.hpp"
 #include "HMUI/ImageView.hpp"
-#include "HMUI/TableView_ScrollPositionType.hpp"
+#include "HMUI/TableView.hpp"
 #include "HMUI/NoTransitionsButton.hpp"
 
 void Scroll(HMUI::TableView* table, float step, int direction) {
@@ -34,7 +33,7 @@ namespace BetterSongList::Hooks {
 
     void ScrollEnhancement::GameRestart() {
         for (auto& btn : buttons) {
-            if (btn && btn.ptr() && btn->m_CachedPtr.m_value) {
+            if (btn && btn.ptr() && btn->___m_CachedPtr.m_value) {
                 UnityEngine::Object::DestroyImmediate(btn.ptr());
             }
             btn = nullptr;
@@ -44,14 +43,14 @@ namespace BetterSongList::Hooks {
     void ScrollEnhancement::LevelCollectionTableView_Init_Prefix(GlobalNamespace::LevelCollectionTableView* self, bool isInitialized, HMUI::TableView* tableView) {
         INFO("ScrollEnhancement::LevelCollectionTableView_Init_Prefix({}, {}, {})", fmt::ptr(self), isInitialized, fmt::ptr(tableView));
         if (!isInitialized)
-            GlobalNamespace::SharedCoroutineStarter::get_instance()->StartCoroutine(custom_types::Helpers::CoroutineHelper::New(SetupExtraScrollButtons(tableView, self->get_transform())));
+            BSML::SharedCoroutineStarter::get_instance()->StartCoroutine(custom_types::Helpers::CoroutineHelper::New(SetupExtraScrollButtons(tableView, self->get_transform())));
 
         UpdateState();
     }
 
     void ScrollEnhancement::UpdateState() {
         for (auto& btn : buttons) {
-            if (btn && btn.ptr() && btn->m_CachedPtr.m_value) {
+            if (btn && btn.ptr() && btn->___m_CachedPtr.m_value) {
                 btn->SetActive(config.get_extendSongScrollbar());
             }
         }
@@ -65,7 +64,7 @@ namespace BetterSongList::Hooks {
                 ->get_parent() // LevelCollectionViewController
             );
 
-        auto newBtn = reinterpret_cast<UnityEngine::RectTransform*>(newBtnGo->get_transform());
+        auto newBtn = newBtnGo->get_transform().try_cast<UnityEngine::RectTransform>().value_or(nullptr);
         newBtn->set_anchorMin({0.92f, 0.893f - vOffs});
         newBtn->set_anchorMax({0.96f, 0.953f - vOffs});
 
@@ -86,15 +85,18 @@ namespace BetterSongList::Hooks {
         return newBtn;
     }
 
+    static HMUI::TableView* storedTable = nullptr;
+
     custom_types::Helpers::Coroutine ScrollEnhancement::SetupExtraScrollButtons(HMUI::TableView* table, UnityEngine::Transform* a) {
+        storedTable = table;
         co_yield reinterpret_cast<System::Collections::IEnumerator*>(UnityEngine::WaitForEndOfFrame::New_ctor());
 
-        auto r = reinterpret_cast<UnityEngine::RectTransform*>(table->get_transform()->get_parent()->get_parent());
+        auto r = table->get_transform()->get_parent()->get_parent().try_cast<UnityEngine::RectTransform>().value_or(nullptr);
         auto sizeDelta = r->get_sizeDelta();
         sizeDelta.x += 4;
         r->set_sizeDelta(sizeDelta);
 
-        r = reinterpret_cast<UnityEngine::RectTransform*>(table->get_transform()->get_parent());
+        r = table->get_transform()->get_parent().try_cast<UnityEngine::RectTransform>().value_or(nullptr);
         auto anchorMin = r->get_anchorMin();
         anchorMin.x += 0.02f;
         r->set_anchorMin(anchorMin);
@@ -106,7 +108,7 @@ namespace BetterSongList::Hooks {
 
         // move the scroll bar to the right slightly
         static ConstString scrollBar{"ScrollBar"};
-        auto bar = reinterpret_cast<UnityEngine::RectTransform*>(a->Find(scrollBar));
+        auto bar = a->Find(scrollBar).try_cast<UnityEngine::RectTransform>().value_or(nullptr);
         auto min = bar->get_anchorMin();
         min.x -= 0.04f;
         bar->set_anchorMin(min);
@@ -116,12 +118,12 @@ namespace BetterSongList::Hooks {
 
         
 
-        auto btnUpFast = BuildButton(button, MOD_ID "_double_arrow", 0, -90, [table](){Scroll(table, 0.1f, -1);});
-        auto btnDownFast = BuildButton(button, MOD_ID "_double_arrow", 0.86f, 90, [table](){Scroll(table, 0.1f, 1);});
+        auto btnUpFast = BuildButton(button, MOD_ID "_double_arrow", 0, -90, [](){Scroll(storedTable, 0.1f, -1);});
+        auto btnDownFast = BuildButton(button, MOD_ID "_double_arrow", 0.86f, 90, [](){Scroll(storedTable, 0.1f, 1);});
 
         buttons[0] = btnUpFast->get_gameObject();
-        buttons[1] = BuildButton(button, "#HeightIcon", 0.09f, 0, [table](){Scroll(table, 1.0f, 0);})->get_gameObject();
-        buttons[2] = BuildButton(button, "#HeightIcon", 0.77f, 180, [table](){Scroll(table, 1.0f, 1);})->get_gameObject();
+        buttons[1] = BuildButton(button, "#HeightIcon", 0.09f, 0, [](){Scroll(storedTable, 1.0f, 0);})->get_gameObject();
+        buttons[2] = BuildButton(button, "#HeightIcon", 0.77f, 180, [](){Scroll(storedTable, 1.0f, 1);})->get_gameObject();
         buttons[3] = btnDownFast->get_gameObject();
         co_yield nullptr;
         UpdateState();

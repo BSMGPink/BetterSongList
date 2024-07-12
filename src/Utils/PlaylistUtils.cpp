@@ -1,18 +1,17 @@
 #include "Utils/PlaylistUtils.hpp"
-#include "modloader/shared/modloader.hpp"
+#include "scotland2/shared/loader.hpp"
 #include "logging.hpp"
 
 #include "UnityEngine/Object.hpp"
-#include "GlobalNamespace/CustomBeatmapLevelPack.hpp"
-#include "GlobalNamespace/CustomBeatmapLevelCollection.hpp"
-#include "GlobalNamespace/IBeatmapLevelCollection.hpp"
+#include "UnityEngine/Resources.hpp"
+#include "GlobalNamespace/BeatmapLevelPack.hpp"
 #include "GlobalNamespace/BeatmapLevelsModel.hpp"
+#include "System/Collections/Generic/IReadOnlyList_1.hpp"
 
-#include "songloader/include/CustomTypes/SongLoader.hpp"
-#include "songloader/shared/API.hpp"
-#include "songloader/include/Utils/FindComponentsUtils.hpp"
+#include "songcore/shared/SongCore.hpp"
 
 #include "playlistcore/shared/PlaylistCore.hpp"
+
 namespace BetterSongList::PlaylistUtils {
     // we link to the playlist lib so it's always available
     static bool hasPlaylistLib = true;
@@ -20,8 +19,8 @@ namespace BetterSongList::PlaylistUtils {
         return hasPlaylistLib;
     }
 
-    SafePtr<Dictionary<StringW, GlobalNamespace::IBeatmapLevelPack*>> builtinPacks;
-    Dictionary<StringW, GlobalNamespace::IBeatmapLevelPack*>* get_builtinPacks() {
+    SafePtr<Dictionary<StringW, GlobalNamespace::BeatmapLevelPack*>> builtinPacks;
+    Dictionary<StringW, GlobalNamespace::BeatmapLevelPack*>* get_builtinPacks() {
         if (!builtinPacks) {
             return nullptr;
         }
@@ -32,37 +31,53 @@ namespace BetterSongList::PlaylistUtils {
         INFO("HAHABALL we don't need to init anything cause playlist mod is required on quest :)");
     }
 
-    GlobalNamespace::IBeatmapLevelPack* GetPack(StringW packID) {
+    GlobalNamespace::BeatmapLevelPack* GetPack(StringW packID) {
         if (!packID) return nullptr;
-        auto songLoader = RuntimeSongLoader::SongLoader::GetInstance();
-        static std::string customLevelPackId = RuntimeSongLoader::API::GetCustomLevelPacksPrefix() + "Custom_Levels";
-        static std::string customWipLevelPackId = RuntimeSongLoader::API::GetCustomLevelPacksPrefix() + "Custom_Levels";
+        static std::string customLevelPackId = "custom_levelPack_CustomLevels";
+        static std::string customWipLevelPackId = "custom_levelPack_CustomWIPLevels";
         if (packID == customLevelPackId) {
-            return songLoader->CustomLevelsPack->CustomLevelsPack->i_IBeatmapLevelPack();
+            return SongCore::API::Loading::GetCustomLevelPack();
         } else if (packID == customWipLevelPackId) {
-            return songLoader->CustomWIPLevelsPack->CustomLevelsPack->i_IBeatmapLevelPack();
+            return SongCore::API::Loading::GetCustomWIPLevelPack();
         }
 
         if (!get_builtinPacks()) {
-            auto levelsModel = RuntimeSongLoader::FindComponentsUtils::GetBeatmapLevelsModel();
-            auto collection = levelsModel->get_allLoadedBeatmapLevelWithoutCustomLevelPackCollection();
-            auto packs = collection->get_beatmapLevelPacks();
-            builtinPacks = Dictionary<StringW, GlobalNamespace::IBeatmapLevelPack*>::New_ctor();
+            builtinPacks = Dictionary<StringW, GlobalNamespace::BeatmapLevelPack*>::New_ctor();
+            INFO(":3 1");
+            auto levelsModels = UnityEngine::Resources::FindObjectsOfTypeAll<GlobalNamespace::BeatmapLevelsModel*>();
+            INFO(":3 2");
+            if (levelsModels) {
+                INFO(":3 3");
+                auto levelModel = levelsModels.front();
+                INFO(":3 4");
+                auto ostPacks = levelModel.value()->ostAndExtrasBeatmapLevelsRepository->beatmapLevelPacks->i___System__Collections__Generic__IEnumerable_1_T_();
+                INFO(":3 5");
+                auto dlcPacks = levelModel.value()->dlcBeatmapLevelsRepository->beatmapLevelPacks->i___System__Collections__Generic__IEnumerable_1_T_();
+                INFO(":3 6");
+                auto packs = ListW<GlobalNamespace::BeatmapLevelPack*>::New();
+                INFO(":3 7");
+                packs->AddRange(ostPacks);
+                INFO(":3 8");
+                packs->AddRange(dlcPacks);
+                INFO(":3 9");
 
-            for (auto p : packs) {
-                builtinPacks->Add(p->get_packID(), p);
+                for (auto p : packs) {
+                    INFO(":3 10 {}", p->packID);
+                    builtinPacks->Add(p->packID, p);
+                }
+                INFO(":3 11");
             }
         }
 
-        GlobalNamespace::IBeatmapLevelPack* v = nullptr;
+        GlobalNamespace::BeatmapLevelPack* v = nullptr;
         if (get_builtinPacks()->TryGetValue(packID, byref(v))) {
             return v;
         } else if (hasPlaylistLib) {
             auto pls = PlaylistCore::GetLoadedPlaylists();
             for (auto pl : pls) {
                 if (pl->playlistCS) {
-                    if (pl->playlistCS->get_packID() == packID) {
-                        return pl->playlistCS->i_IBeatmapLevelPack();
+                    if (pl->playlistCS->packID == packID) {
+                        return pl->playlistCS;
                     }
                 }
             }
@@ -71,14 +86,7 @@ namespace BetterSongList::PlaylistUtils {
         return nullptr;
     }
 
-    bool IsCollection(GlobalNamespace::IAnnotatedBeatmapLevelCollection* levelCollection) {
-        // TODO: check if these checks are even right because it's really confusing how songloader does playlists
-        return il2cpp_utils::try_cast<GlobalNamespace::CustomBeatmapLevelPack>(levelCollection).has_value();
-    }
-
-    ArrayW<GlobalNamespace::IPreviewBeatmapLevel*> GetLevelsForLevelCollection(GlobalNamespace::IAnnotatedBeatmapLevelCollection* levelCollection) {
-        // TODO: idem
-        auto collection = levelCollection ? levelCollection->get_beatmapLevelCollection() : nullptr;
-        return collection ? collection->get_beatmapLevels() : ArrayW<GlobalNamespace::IPreviewBeatmapLevel*>(il2cpp_array_size_t(0));
+    ArrayW<GlobalNamespace::BeatmapLevel*> GetLevelsForLevelCollection(GlobalNamespace::BeatmapLevelPack* levelCollection) {
+        return levelCollection ? levelCollection->beatmapLevels : ArrayW<GlobalNamespace::BeatmapLevel*>(il2cpp_array_size_t(0));
     }
 }

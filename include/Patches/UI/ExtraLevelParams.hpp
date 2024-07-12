@@ -5,8 +5,8 @@
 #include "TMPro/TextMeshProUGUI.hpp"
 #include "HMUI/HoverHintController.hpp"
 #include "GlobalNamespace/StandardLevelDetailView.hpp"
-#include "GlobalNamespace/IBeatmapLevel.hpp"
-#include "GlobalNamespace/IDifficultyBeatmap.hpp"
+#include "GlobalNamespace/BeatmapLevel.hpp"
+#include "GlobalNamespace/BeatmapKey.hpp"
 #include "GlobalNamespace/LevelParamsPanel.hpp"
 
 namespace BetterSongList::Hooks {
@@ -15,8 +15,8 @@ namespace BetterSongList::Hooks {
             /// @brief no prio
             static void StandardLevelDetailView_RefreshContent_Postfix(
                     GlobalNamespace::StandardLevelDetailView* self, 
-                    GlobalNamespace::IBeatmapLevel* level, 
-                    GlobalNamespace::IDifficultyBeatmap* selectedDifficultyBeatmap,
+                    GlobalNamespace::BeatmapLevel* level, 
+                    GlobalNamespace::BeatmapKey selectedDifficultyBeatmap,
                     GlobalNamespace::LevelParamsPanel* levelParamsPanel 
                 );
             static void UpdateState();

@@ -22,7 +22,7 @@ namespace BetterSongList {
         sortValueGetter(sortFunc), 
         legendValueGetter(legendFunc) {}
 
-    std::string BasicSongDetailsSorterWithLegend::DefaultLegendGetter(const SDC_wrapper::BeatStarSong* song) const {
+    std::string BasicSongDetailsSorterWithLegend::DefaultLegendGetter(const SongDetailsCache::Song* song) const {
         auto v = sortValueGetter(song);
         return v.has_value() ? fmt::format("{}", v.value()) : "";
     }
@@ -41,30 +41,36 @@ namespace BetterSongList {
         });
     }
 
-    ISorterWithLegend::Legend BasicSongDetailsSorterWithLegend::BuildLegend(ArrayW<GlobalNamespace::IPreviewBeatmapLevel*> levels) const {
-        if (SongDetails::get_songDetails().empty()) return {};
+    ISorterWithLegend::Legend BasicSongDetailsSorterWithLegend::BuildLegend(ArrayW<GlobalNamespace::BeatmapLevel*> levels) const {
+        if (
+            !SongDetails::get_songDetails()->songs.get_isDataAvailable() ||
+            SongDetails::get_songDetails()->songs.size() == 0
+        ) return {};
 
-        return SongListLegendBuilder::BuildFor(levels, [legendValueGetter = legendValueGetter](GlobalNamespace::IPreviewBeatmapLevel* level) -> std::string {
+        return SongListLegendBuilder::BuildFor(levels, [legendValueGetter = legendValueGetter](GlobalNamespace::BeatmapLevel* level) -> std::string {
             auto h = BeatmapUtils::GetHashOfPreview(level);
             if (h.empty()) return "N/A";
 
-            auto song = SDC_wrapper::BeatStarSong::GetSong(h);
-            if (!song) return "N/A";
+            auto &song = SongDetails::get_songDetails()->songs.FindByHash(h);
+            if (song == SongDetailsCache::Song::none ) return "N/A";
 
-            return legendValueGetter(song);
+            return legendValueGetter(&song);
         });
     }
 
-    std::optional<float> BasicSongDetailsSorterWithLegend::GetValueFor(GlobalNamespace::IPreviewBeatmapLevel* level) const {
-        if (SongDetails::get_songDetails().empty()) return std::nullopt;
+    std::optional<float> BasicSongDetailsSorterWithLegend::GetValueFor(GlobalNamespace::BeatmapLevel* level) const {
+        if (
+            !SongDetails::get_songDetails()->songs.get_isDataAvailable() ||
+            SongDetails::get_songDetails()->songs.size() == 0
+        ) return std::nullopt;
 
-        auto h = BeatmapUtils::GetHashOfPreview(level);
+        std::string h = BeatmapUtils::GetHashOfPreview(level);
         if (h.empty()) return std::nullopt;
 
-        auto song = SDC_wrapper::BeatStarSong::GetSong(h);
-        if (!song) return std::nullopt;
+        auto &song = SongDetails::get_songDetails()->songs.FindByHash(h);
+        if (song == SongDetailsCache::Song::none ) return std::nullopt;
 
-        return sortValueGetter(song);
+        return sortValueGetter(&song);
     }
 
     std::string BasicSongDetailsSorterWithLegend::GetUnavailableReason() const {

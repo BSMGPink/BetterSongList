@@ -2,7 +2,7 @@
 
 
 #include "beatsaber-hook/shared/utils/typedefs.h"
-#include "GlobalNamespace/IPreviewBeatmapLevel.hpp"
+#include "GlobalNamespace/BeatmapLevel.hpp"
 #include "ISorter.hpp"
 #include <unordered_map>
 #include <algorithm>
@@ -21,11 +21,11 @@ namespace BetterSongList::SongListLegendBuilder {
     
     // this method is public for your convenience because building a legend is hell if you can't access this method, and just copying it can be annoying
     /// @param levels the sorted level array to build the legend for
-    /// @param builder the method that makes the legend string from the IPreviewBeatmapLevel
+    /// @param builder the method that makes the legend string from the BeatmapLevel
     /// @param entryLengthLimit the limit of the length for the legend entries
     /// @param valueLimit the limit for the amount of entries in the final legend
     /// @return ISorter::Legend the legend for the passed levels
-    static ISorterWithLegend::Legend BuildFor(ArrayW<GlobalNamespace::IPreviewBeatmapLevel*> levels, std::function<std::string(GlobalNamespace::IPreviewBeatmapLevel*)> builder, int entryLengthLimit = 6, int valueLimit = 28) {
+    static ISorterWithLegend::Legend BuildFor(ArrayW<GlobalNamespace::BeatmapLevel*> levels, std::function<std::string(GlobalNamespace::BeatmapLevel*)> builder, int entryLengthLimit = 6, int valueLimit = 28) {
         std::vector<GroupedLegendPairs> grouped;
         // start at -1 because 0 based index, and we have to pre increment due to the continue clause
         for (int i = -1; auto& level : levels) {

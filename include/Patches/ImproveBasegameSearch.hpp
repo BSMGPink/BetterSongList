@@ -1,12 +1,13 @@
 #pragma once
 
-#include "GlobalNamespace/IPreviewBeatmapLevel.hpp"
+#include "GlobalNamespace/BeatmapLevel.hpp"
+#include "System/Collections/Generic/List_1.hpp"
 #include "beatsaber-hook/shared/utils/typedefs.h"
 
 namespace BetterSongList::Hooks {
     class ImproveBasegameSearch {
         public:
             /// @brief prio int min value + 10
-            static bool BeatmapLevelFilterModel_LevelContainsText_Prefix(GlobalNamespace::IPreviewBeatmapLevel* beatmapLevel, ArrayW<StringW>& searchTexts, bool& result);
+            static bool LevelFilter_FilterLevelByText_Prefix(System::Collections::Generic::List_1<GlobalNamespace::BeatmapLevel*>* levels, ArrayW<StringW>& searchTexts, System::Collections::Generic::List_1<GlobalNamespace::BeatmapLevel*>*& result);
     };
 }

@@ -3,7 +3,9 @@
 #include <string>
 #include <vector>
 #include "custom-types/shared/coroutine.hpp"
-#include "sdc-wrapper/shared/BeatStarSong.hpp"
+#include "song-details/shared/SongDetails.hpp"
+#include "song-details/shared/Data/Song.hpp"
+#include "GlobalNamespace/BeatmapCharacteristicSO.hpp"
 
 namespace BetterSongList::SongDetails {
     bool get_isAvailable();
@@ -12,6 +14,10 @@ namespace BetterSongList::SongDetails {
     
     bool CheckAvailable();
     std::string GetUnavailabilityReason();
-    const std::vector<const SDC_wrapper::BeatStarSong*>& get_songDetails();
+    SongDetailsCache::SongDetails * get_songDetails();
     void Init();
+
+    SongDetailsCache::MapCharacteristic StringToBeatStarCharacteristics(std::string_view serializedName);
+    std::string BeatmapCharacteristicToString(GlobalNamespace::BeatmapCharacteristicSO* char_);
+    SongDetailsCache::MapCharacteristic BeatmapCharacteristicToBeatStarCharacteristic(GlobalNamespace::BeatmapCharacteristicSO* char_);
 }

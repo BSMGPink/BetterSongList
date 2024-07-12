@@ -2,7 +2,6 @@
 #include "config.hpp"
 #include "logging.hpp"
 
-#include "Utils/BeatmapPatternDetection.hpp"
 #include "Utils/SongDetails.hpp"
 #include "Utils/JumpDistanceCalculator.hpp"
 #include "Utils/BeatmapUtils.hpp"
@@ -16,23 +15,42 @@
 #include "HMUI/HoverHint.hpp"
 #include "HMUI/CurvedTextMeshPro.hpp"
 #include "GlobalNamespace/LocalizedHoverHint.hpp"
-#include "GlobalNamespace/SharedCoroutineStarter.hpp"
-#include "GlobalNamespace/CustomDifficultyBeatmap.hpp"
+#include "bsml/shared/BSML/SharedCoroutineStarter.hpp"
 #include "GlobalNamespace/BeatmapDifficultyMethods.hpp"
-#include "GlobalNamespace/IDifficultyBeatmapSet.hpp"
+#include "GlobalNamespace/BeatmapCharacteristicSO.hpp"
+#include "GlobalNamespace/BeatmapDifficulty.hpp"
+#include "GlobalNamespace/BeatmapKey.hpp"
+#include "GlobalNamespace/StandardLevelInfoSaveData.hpp"
+#include "GlobalNamespace/BeatmapBasicData.hpp"
 #include "BeatmapSaveDataVersion3/BeatmapSaveData.hpp"
+#include "System/IO/File.hpp"
+#include "song-details/shared/SongDetails.hpp"
+#include "song-details/shared/Data/MapDifficulty.hpp"
+#include "song-details/shared/Data/Song.hpp"
+#include "song-details/shared/Data/SongDifficulty.hpp"
+#include "Utils/SongDetails.hpp"
+#include "song-details/shared/DiffArray.hpp"
+#include "songcore/shared/SongLoader/CustomBeatmapLevel.hpp"
+#include "CustomTypes/CanvasGroupLinker.hpp"
+
+#include "paper/shared/utfcpp/source/utf8.h"
 
 #include <algorithm>
 
-std::array<std::string, 5> diffToString {
-    "Easy",
-	"Normal",
-	"Hard",
-	"Expert",
-	"ExpertPlus",
+std::array<SongDetailsCache::MapDifficulty, 5> diffToString {
+    SongDetailsCache::MapDifficulty::Easy,
+    SongDetailsCache::MapDifficulty::Normal,
+    SongDetailsCache::MapDifficulty::Hard,
+    SongDetailsCache::MapDifficulty::Expert,
+    SongDetailsCache::MapDifficulty::ExpertPlus
 };
 
-std::string_view BeatmapDifficultyToString(int value) {
+// Map for difficulties
+static const std::unordered_map<int, SongDetailsCache::MapDifficulty> diffMap = {
+    
+};
+
+SongDetailsCache::MapDifficulty BeatmapDifficultyToString(int value) {
     return diffToString.at(value);
 }
 
@@ -70,10 +88,58 @@ namespace BetterSongList::Hooks {
         return hoverHintController.ptr();
     }
 
-    void ExtraLevelParams::StandardLevelDetailView_RefreshContent_Postfix(GlobalNamespace::StandardLevelDetailView* self, GlobalNamespace::IBeatmapLevel* level, GlobalNamespace::IDifficultyBeatmap* selectedDifficultyBeatmap, GlobalNamespace::LevelParamsPanel* levelParamsPanel) {
-        if (!get_extraUI() || !get_extraUI()->m_CachedPtr.m_value) {
+    int monthsAgoFromUnixTimestamp(time_t timestamp) {
+        // Get current time in UTC
+        time_t now = time(nullptr);
+
+        // Convert the Unix timestamp to a tm structure in UTC
+        std::tm timeinfo = *std::gmtime(&timestamp);
+
+        // Convert current time to a tm structure in UTC
+        std::tm nowinfo = *std::gmtime(&now);
+
+        // Calculate the difference in years and months
+        int yearsDiff = nowinfo.tm_year - timeinfo.tm_year;
+        int monthsDiff = nowinfo.tm_mon - timeinfo.tm_mon;
+
+        // Adjust months difference for negative values
+        if (monthsDiff < 0) {
+            monthsDiff += 12;
+            yearsDiff--;
+        }
+
+        // Convert years to months and add to months difference
+        monthsDiff += yearsDiff * 12;
+
+        return monthsDiff;
+    }
+
+    void ExtraLevelParams::StandardLevelDetailView_RefreshContent_Postfix(GlobalNamespace::StandardLevelDetailView* self, GlobalNamespace::BeatmapLevel* level, GlobalNamespace::BeatmapKey selectedDifficultyBeatmap, GlobalNamespace::LevelParamsPanel* levelParamsPanel) {
+        if (!get_extraUI() || !get_extraUI()->___m_CachedPtr.m_value) {
             extraUI = UnityEngine::Object::Instantiate(levelParamsPanel->get_gameObject(), levelParamsPanel->get_transform()->get_parent());
             UnityEngine::Object::Destroy(extraUI->GetComponent<GlobalNamespace::LevelParamsPanel*>());
+            auto linker = levelParamsPanel->get_gameObject()->AddComponent<BetterSongList::CanvasGroupLinker*>();
+            linker->baseCanvasGroup = levelParamsPanel->GetComponent<UnityEngine::CanvasGroup*>();
+            linker->targetCanvasGroup = extraUI->GetComponent<UnityEngine::CanvasGroup*>();
+            linker->OnCanvasGroupChanged = []() {
+                auto level = ExtraLevelParams::get_lastInstance()->____beatmapLevel;
+                auto selectedDifficultyBeatmap = ExtraLevelParams::get_lastInstance()->get_beatmapKey();
+                auto levelParamsPanel = ExtraLevelParams::get_lastInstance()->____levelParamsPanel;
+
+                auto obstaclesText = levelParamsPanel->____obstaclesCountText;
+                auto txt = obstaclesText->get_text();
+                int obstacleCount = 0;
+                std::istringstream(static_cast<std::string>(txt)) >> obstacleCount;
+
+                obstaclesText->set_fontStyle(TMPro::FontStyles::Italic);
+                if (config.get_showWarningIfMapHasCrouchWallsBecauseMappersThinkSprinklingThemInRandomlyIsFun()) {
+                    obstaclesText->set_richText(true);
+                    if(obstacleCount < 0) {
+                        obstaclesText->set_fontStyle(TMPro::FontStyles::Normal);
+                        obstaclesText->set_text(fmt::format("<i>{}</i> <b><size=3.3><color=#FF0>⚠</color></size></b>", std::abs(obstacleCount)));
+                    }
+                }
+            };
 
             auto pos = levelParamsPanel->get_transform()->get_localPosition();
             pos.y += 3.5f;
@@ -83,28 +149,12 @@ namespace BetterSongList::Hooks {
             extraUI->get_transform()->set_localPosition(pos);
 
             fields.emplace(static_cast<Array<TMPro::TextMeshProUGUI*>*>(extraUI->GetComponentsInChildren<HMUI::CurvedTextMeshPro*>(true).convert()));
-            GlobalNamespace::SharedCoroutineStarter::get_instance()->StartCoroutine(custom_types::Helpers::CoroutineHelper::New(ProcessFields()));
+            BSML::SharedCoroutineStarter::get_instance()->StartCoroutine(custom_types::Helpers::CoroutineHelper::New(ProcessFields()));
         }
 
         lastInstance = self;
 
-        auto obstaclesText = levelParamsPanel->obstaclesCountText;
-        obstaclesText->set_fontStyle(TMPro::FontStyles::Italic);
-
-        if (config.get_showWarningIfMapHasCrouchWallsBecauseMappersThinkSprinklingThemInRandomlyIsFun()) {
-            obstaclesText->set_richText(true);
-            auto customdiffOpt = il2cpp_utils::try_cast<GlobalNamespace::CustomDifficultyBeatmap>(selectedDifficultyBeatmap);
-            if (customdiffOpt.has_value()) {
-                auto obstacles = customdiffOpt.value()->get_beatmapSaveData()->obstacles;
-                if (BeatmapPatternDetection::CheckForCrouchWalls(obstacles)) {
-                    obstaclesText->set_fontStyle(TMPro::FontStyles::Normal);
-                    obstaclesText->set_text(fmt::format("<i>{}</i> <b><size=3.3><color=#FF0>!</color></size></b>", obstaclesText->get_text()));
-                }
-            } else {
-                /* nothing */
-            }
-
-        }
+        auto basicData = level->GetDifficultyBeatmapData(selectedDifficultyBeatmap.beatmapCharacteristic, selectedDifficultyBeatmap.difficulty);
 
         if (get_fields()) {
             auto fieldsW = get_fields();
@@ -112,40 +162,71 @@ namespace BetterSongList::Hooks {
                 INFO("No song details available");
                 fieldsW[0]->set_text("N/A");
                 fieldsW[1]->set_text("N/A");
-            } else if (!BetterSongList::SongDetails::get_songDetails().empty()) {
+            } else if (BetterSongList::SongDetails::get_songDetails()->songs.size() != 0) {
                 INFO("details available, not empty");
-                auto parentSet = selectedDifficultyBeatmap->get_parentDifficultyBeatmapSet();
-                auto characteristic = parentSet ? parentSet->get_beatmapCharacteristic() : nullptr;
-                auto ch = characteristic ? SDC_wrapper::BeatStarCharacteristic::BeatmapCharacteristicToBeatStarCharacteristic(characteristic) : song_data_core::BeatStarCharacteristics::Unknown;
+                auto characteristic = selectedDifficultyBeatmap.beatmapCharacteristic;
+                auto ch = characteristic ? BetterSongList::SongDetails::BeatmapCharacteristicToBeatStarCharacteristic(characteristic) : SongDetailsCache::MapCharacteristic::Custom;
 
-                if (ch != song_data_core::BeatStarCharacteristics::Standard) {
+                if (ch != SongDetailsCache::MapCharacteristic::Standard) {
                     INFO("Characteristic was not standard");
                     fieldsW[0]->set_text("-");
                     fieldsW[1]->set_text("-");
                 } else {
                     INFO("Characteristic was standard");
-                    auto hash = BeatmapUtils::GetHashOfPreview(level->i_IPreviewBeatmapLevel());
+                    auto hash = BeatmapUtils::GetHashOfPreview(level);
                     INFO("Got hash: {}", hash);
-                    const SDC_wrapper::BeatStarSong* song = nullptr;
-                    const SDC_wrapper::BeatStarSongDifficultyStats* diff = nullptr;
-                    if (hash.empty() || /* no hash */
-                        !(song = SDC_wrapper::BeatStarSong::GetSong(hash)) || /* song not found */
-                        !(diff = song->GetDifficulty(ch, BeatmapDifficultyToString(selectedDifficultyBeatmap->get_difficulty()))) /* diff not found */
+                    const SongDetailsCache::Song* song = nullptr;
+                    const SongDetailsCache::SongDifficulty* diff = nullptr;
+                    
+                    // Get song and difficulty
+                    {
+                        if (!hash.empty()) {
+                            auto &songRef = SongDetails::get_songDetails()->songs.FindByHash(hash);
+                            if (songRef != SongDetailsCache::Song::none) {
+                                song = &songRef;
+                            }
+                            if (song != nullptr) {
+                                auto & diffRef = song->GetDifficulty(BeatmapDifficultyToString(selectedDifficultyBeatmap.difficulty.value__), ch);
+                                if (diffRef != SongDetailsCache::SongDifficulty::none) {
+                                    diff = &diffRef;
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (hash.empty() || // no hash
+                        !song || // song not found
+                        !diff // diff not found
                     ) {
-                        INFO("either hash was empty, the song was not found, or the diff was not found");
+                        INFO("No diff|song|hash found, setting to ?");
                         fieldsW[0]->set_text("?");
                         fieldsW[1]->set_text("?");
-                    } else if (!diff->ranked) {
-                        INFO("the diff was not ranked");
-                        fieldsW[0]->set_text("-");
-                        fieldsW[1]->set_text("-");
+                        fieldsW[3]->set_text("?");
                     } else {
                         INFO("diff was found and ranked, now to show those values");
-                        auto acc = 0.984f - (std::max(0.0f, (diff->stars - 1.5f) / (12.5f - 1.5f) / config.get_accuracyMultiplier()) * .027f);
-						auto pp = PPUtils::PPPercentage(acc) * diff->stars * 42.1f;
+                        bool isSs = config.get_preferredLeaderboardAsString() == "ScoreSaber";
+                        float stars = isSs ? diff->starsSS : diff->starsBL;
 
-                        fieldsW[0]->set_text(fmt::format("{0} <size=2.5>({1:0.0f})</size>", (int)pp, acc));
-						fieldsW[1]->set_text(fmt::format("{:1.1f}", diff->stars));
+                        if (stars <= 0) {
+                            fieldsW[0]->set_text("-");
+                            fieldsW[1]->set_text("-");
+                        } else if (isSs) {
+                            auto acc = 0.984f - (std::max(0.0f, (diff->starsSS - 1.5f) / (12.5f - 1.5f) / config.get_accuracyMultiplier()) * .027f);
+                            auto pp = PPUtils::PPPercentage(acc) * diff->starsSS * 42.1f;
+
+                            fieldsW[0]->set_text(fmt::format("{0} <size=2.5>({1:0.0f})</size>", (int)pp, acc));
+                            fieldsW[1]->set_text(fmt::format("{:1.1f}", diff->starsSS));
+
+                        } else {
+                            fieldsW[0]->set_text("?");
+                            fieldsW[1]->set_text(fmt::format("{:1.1f}", diff->starsBL));
+                        }
+                    }
+
+                    if(song) {
+                        auto unixDate = (int)song->uploadTimeUnix;
+
+                        fieldsW[3]->set_text(fmt::format("{}", monthsAgoFromUnixTimestamp(unixDate)));
                     }
                 }
             } else if (!BetterSongList::SongDetails::get_finishedInitAttempt()){
@@ -154,22 +235,11 @@ namespace BetterSongList::Hooks {
                 fieldsW[1]->set_text("...");
             }
 
-            auto njs = selectedDifficultyBeatmap->get_noteJumpMovementSpeed();
-            if (njs == 0) {
-                njs = GlobalNamespace::BeatmapDifficultyMethods::NoteJumpMovementSpeed(selectedDifficultyBeatmap->get_difficulty());
-            }
-
-            INFO("Setting njs {}", njs);
-            fieldsW[2]->set_text(fmt::format("{:1.1f}", njs));
-
-            if (config.get_showMapJDInsteadOfOffset()) { // map jump distance
-                float jumpDistance = BetterSongList::JumpDistanceCalculator::GetJd(selectedDifficultyBeatmap->get_level()->i_IPreviewBeatmapLevel()->get_beatsPerMinute(), njs, selectedDifficultyBeatmap->get_noteJumpStartBeatOffset());
-                fieldsW[3]->set_text(fmt::format("{:1.1f}", jumpDistance));
-                INFO("Setting jumpDistance {}", jumpDistance);
-            } else { // offset
-                float offset = selectedDifficultyBeatmap->get_noteJumpStartBeatOffset();
-                fieldsW[3]->set_text(fmt::format("{:1.1f}", offset));
-                INFO("Setting offset  {}", offset);
+            auto customBeatmapLevelOpt = il2cpp_utils::try_cast<SongCore::SongLoader::CustomBeatmapLevel>(level);
+            if (customBeatmapLevelOpt) {
+                fieldsW[2]->set_text(fmt::format("{:1.1f}", basicData->___noteJumpMovementSpeed));
+            } else {
+                fieldsW[2]->set_text("?");
             }
         } else {
             ERROR("Fields was nullptr!");
@@ -178,12 +248,13 @@ namespace BetterSongList::Hooks {
 
     void ExtraLevelParams::UpdateState() {
         auto inst = get_lastInstance();
-        if (inst && inst->m_CachedPtr.m_value && inst->get_isActiveAndEnabled()) inst->RefreshContent();
+        if (inst && inst->___m_CachedPtr.m_value && inst->get_isActiveAndEnabled()) inst->RefreshContent();
     }
 
     void ExtraLevelParams::ModifyValue(TMPro::TextMeshProUGUI* text, std::string_view hoverHint, std::string_view icon) {
         DEBUG("Get go");
         auto go = text->get_gameObject();
+        go->SetActive(true);
         BSML::Utilities::SetImage(text->get_transform()->get_parent()->Find("Icon")->get_gameObject()->GetComponent<HMUI::ImageView*>(), icon);
         DEBUG("get hhint");
         auto localizedhhint = go->GetComponentInParent<GlobalNamespace::LocalizedHoverHint*>();
@@ -194,9 +265,9 @@ namespace BetterSongList::Hooks {
 
         if (!hhint) return;
 
-        if (!get_hoverHintController() || !get_hoverHintController()->m_CachedPtr.m_value)
+        if (!get_hoverHintController() || !get_hoverHintController()->___m_CachedPtr.m_value)
             hoverHintController = UnityEngine::Object::FindObjectOfType<HMUI::HoverHintController*>();
-        hhint->hoverHintController = get_hoverHintController();
+        hhint->____hoverHintController = get_hoverHintController();
         hhint->set_text(hoverHint);
     }
 
@@ -210,9 +281,9 @@ namespace BetterSongList::Hooks {
         auto fieldsW = get_fields();
 
         ModifyValue(fieldsW[0], "ScoreSaber PP Value", "#DifficultyIcon");
-		ModifyValue(fieldsW[1], "ScoreSaber Star Rating", "#FavoritesIcon");
+		ModifyValue(fieldsW[1], "Star Rating", "#FavoritesIcon");
 		ModifyValue(fieldsW[2], "NJS (Note Jump Speed)", "#FastNotesIcon");
-		ModifyValue(fieldsW[3], "JD (Jump Distance, how close notes spawn)", "#MeasureIcon");
+		ModifyValue(fieldsW[3], "BeatSaver upload age (Months)", "#ClockIcon");
 
         fieldsW[0]->set_richText(true);
         fieldsW[0]->set_characterSpacing(-3.0f);

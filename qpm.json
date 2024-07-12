@@ -14,7 +14,7 @@
   "dependencies": [
     {
       "id": "beatsaber-hook",
-      "versionRange": "^3.14.0",
+      "versionRange": "^5.1.7",
       "additionalData": {
         "extraFiles": [
           "src/inline-hook"
@@ -22,67 +22,51 @@
       }
     },
     {
-      "id": "codegen",
-      "versionRange": "^0.32.0",
+      "id": "bs-cordl",
+      "versionRange": "^3700.*",
       "additionalData": {}
     },
     {
-      "id": "modloader",
-      "versionRange": "^1.2.3",
+      "id": "scotland2",
+      "versionRange": "^0.1.4",
       "additionalData": {}
     },
     {
       "id": "custom-types",
-      "versionRange": "^0.15.22",
+      "versionRange": "^0.17.8",
       "additionalData": {
         "private": true
       }
     },
     {
       "id": "bsml",
-      "versionRange": "^0.2.10",
+      "versionRange": "^0.4.40",
       "additionalData": {
         "private": true
       }
     },
     {
       "id": "paper",
-      "versionRange": "^1.2.9",
+      "versionRange": "^3.6.3",
       "additionalData": {
         "private": true
       }
     },
     {
-      "id": "sdc-wrapper",
-      "versionRange": "*",
+      "id": "songcore",
+      "versionRange": "^1.1.13",
+      "additionalData": {
+        "private": true
+      }
+    },
+    {
+      "id": "song-details",
+      "versionRange": "^0.3.3",
       "additionalData": {}
     },
     {
-      "id": "songloader",
-      "versionRange": "^0.10.14",
-      "additionalData": {
-        "private": true,
-        "extraFiles": [
-          "include"
-        ],
-        "compileOptions": {
-          "includePaths": [
-            "include",
-            "shared"
-          ]
-        }
-      }
-    },
-    {
-      "id": "songdatacore",
-      "versionRange": "*",
-      "additionalData": {
-        "private": true
-      }
-    },
-    {
       "id": "sombrero",
-      "versionRange": "^0.1.35",
+      "versionRange": "^0.1.42",
       "additionalData": {
         "private": true
       }
@@ -95,22 +79,15 @@
       }
     },
     {
-      "id": "questui",
-      "versionRange": "^0.17.10",
-      "additionalData": {
-        "private": true
-      }
-    },
-    {
       "id": "playlistcore",
-      "versionRange": "^1.1.4",
+      "versionRange": "^1000.4.1",
       "additionalData": {
         "private": true
       }
     },
     {
       "id": "conditional-dependencies",
-      "versionRange": "^0.1.0",
+      "versionRange": "^0.3.0",
       "additionalData": {}
     }
   ],

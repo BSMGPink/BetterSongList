@@ -1,7 +1,7 @@
 #pragma once
 
 #include "beatsaber-hook/shared/utils/typedefs.h"
-#include "GlobalNamespace/IPreviewBeatmapLevel.hpp"
+#include "GlobalNamespace/BeatmapLevel.hpp"
 #include <unordered_map>
 #include <optional>
 #include <future>
@@ -40,18 +40,18 @@ namespace BetterSongList {
             
             using Legend = std::vector<LegendPair>;
             constexpr ISorterWithLegend() {};
-            virtual Legend BuildLegend(ArrayW<GlobalNamespace::IPreviewBeatmapLevel*> levels) const = 0;
+            virtual Legend BuildLegend(ArrayW<GlobalNamespace::BeatmapLevel*> levels) const = 0;
     };
 
     class ISorterCustom : public ISorter {
         public:
             constexpr ISorterCustom() : ISorter() {}
-            virtual void DoSort(ArrayW<GlobalNamespace::IPreviewBeatmapLevel*>& levels, bool ascending) const = 0;
+            virtual void DoSort(ArrayW<GlobalNamespace::BeatmapLevel*>& levels, bool ascending) const = 0;
     };
 
     class ISorterPrimitive : public ISorter {
         public:
             constexpr ISorterPrimitive() : ISorter() {}
-            virtual std::optional<float> GetValueFor(GlobalNamespace::IPreviewBeatmapLevel* level) const = 0;
+            virtual std::optional<float> GetValueFor(GlobalNamespace::BeatmapLevel* level) const = 0;
     };
 }

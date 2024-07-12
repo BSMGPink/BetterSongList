@@ -20,8 +20,8 @@ DECLARE_CLASS_CODEGEN(BetterSongList, FilterUI, Il2CppObject,
     DECLARE_INSTANCE_FIELD(UnityEngine::RectTransform*, root);
     DECLARE_INSTANCE_FIELD(BSML::DropdownListSetting*, sortDropDown);
     DECLARE_INSTANCE_FIELD(BSML::DropdownListSetting*, filterDropDown);
-    DECLARE_INSTANCE_FIELD(ListWrapper<StringW>, sortOptionsList);
-    DECLARE_INSTANCE_FIELD(ListWrapper<StringW>, filterOptionsList);
+    DECLARE_INSTANCE_FIELD(ListW<StringW>, sortOptionsList);
+    DECLARE_INSTANCE_FIELD(ListW<StringW>, filterOptionsList);
     DECLARE_INSTANCE_FIELD(bool, warningLoadInProgress);
     DECLARE_INSTANCE_FIELD(HMUI::ImageView*, filterLoadingIndicator);
     DECLARE_INSTANCE_FIELD(BSML::ClickableImage*, sortDirection);

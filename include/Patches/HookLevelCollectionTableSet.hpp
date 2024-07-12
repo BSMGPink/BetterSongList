@@ -15,22 +15,22 @@ namespace BetterSongList::Hooks {
             static ISorter* sorter;
             static IFilter* filter;
 
-            static ArrayW<GlobalNamespace::IPreviewBeatmapLevel*> get_lastInMapList();
-            static ArrayW<GlobalNamespace::IPreviewBeatmapLevel*> get_lastOutMapList();
+            static ArrayW<GlobalNamespace::BeatmapLevel*> get_lastInMapList();
+            static ArrayW<GlobalNamespace::BeatmapLevel*> get_lastOutMapList();
 
             static void Refresh(bool processAsync = false, bool clearAsyncResult = true);
 
             /// @brief prio int max value
-            static void LevelCollectionTableView_SetData_Prefix(GlobalNamespace::LevelCollectionTableView* self, ArrayW<GlobalNamespace::IPreviewBeatmapLevel*>& previewBeatmapLevels, HashSet<StringW>* favoriteLevelIds, bool& beatmapLevelsAreSorted);
+            static void LevelCollectionTableView_SetData_Prefix(GlobalNamespace::LevelCollectionTableView* self, ArrayW<GlobalNamespace::BeatmapLevel*>& previewBeatmapLevels, HashSet<StringW>* favoriteLevelIds, bool& beatmapLevelsAreSorted);
             /// @brief no prio
-            static void LevelCollectionTableView_SetData_PostFix(GlobalNamespace::LevelCollectionTableView* self, ArrayW<GlobalNamespace::IPreviewBeatmapLevel*> previewBeatmapLevels);
+            static void LevelCollectionTableView_SetData_PostFix(GlobalNamespace::LevelCollectionTableView* self, ArrayW<GlobalNamespace::BeatmapLevel*> previewBeatmapLevels);
         private:
-            static void FilterWrapper(ArrayW<GlobalNamespace::IPreviewBeatmapLevel*>& previewBeatmapLevels);
+            static void FilterWrapper(ArrayW<GlobalNamespace::BeatmapLevel*>& previewBeatmapLevels);
             static bool PrepareStuffIfNecessary(std::function<void()> cb = nullptr, bool cbOnAlreadyPrepared = false);
-            static std::function<void(ArrayW<GlobalNamespace::IPreviewBeatmapLevel*>)> recallLast;
-            static SafePtr<Array<GlobalNamespace::IPreviewBeatmapLevel*>> lastInMapList;
-            static SafePtr<Array<GlobalNamespace::IPreviewBeatmapLevel*>> lastOutMapList;
-            static SafePtr<Array<GlobalNamespace::IPreviewBeatmapLevel*>> asyncPreProcessed;
+            static std::function<void(ArrayW<GlobalNamespace::BeatmapLevel*>)> recallLast;
+            static SafePtr<Array<GlobalNamespace::BeatmapLevel*>> lastInMapList;
+            static SafePtr<Array<GlobalNamespace::BeatmapLevel*>> lastOutMapList;
+            static SafePtr<Array<GlobalNamespace::BeatmapLevel*>> asyncPreProcessed;
             static ISorterWithLegend::Legend customLegend;
             static bool prepareThreadCurrentlyRunning;
     };

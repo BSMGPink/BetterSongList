@@ -1,10 +1,10 @@
 #pragma once
 
-#include "GlobalNamespace/IDifficultyBeatmap.hpp"
-#include "GlobalNamespace/IPreviewBeatmapLevel.hpp"
+#include "GlobalNamespace/BeatmapKey.hpp"
+#include "GlobalNamespace/BeatmapLevel.hpp"
 #include <string>
 
 namespace BetterSongList::BeatmapUtils {
-    std::string GetHashOfPreview(GlobalNamespace::IPreviewBeatmapLevel* level);
-    int GetCharacteristicFromDifficulty(GlobalNamespace::IDifficultyBeatmap* diff);
+    std::string GetHashOfPreview(GlobalNamespace::BeatmapLevel* level);
+    int GetCharacteristicFromDifficulty(GlobalNamespace::BeatmapKey diff);
 }

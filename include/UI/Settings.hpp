@@ -29,6 +29,8 @@ DECLARE_CLASS_CODEGEN(BetterSongList, Settings, Il2CppObject,
     BSML_PROPERTY_DEFINITION(bool, extendSongScrollbar);
     BSML_PROPERTY_DEFINITION(bool, showMapJDInsteadOfOffset);
     BSML_PROPERTY_DEFINITION(float, accuracyMultiplier);
+    BSML_OPTIONS_LIST_OBJECT(preferredLeaderboardChoices, "ScoreSaber", "BeatLeader");
+    BSML_PROPERTY_DEFINITION(StringW, preferredLeaderboard);
     
     DECLARE_DEFAULT_CTOR();
     public:

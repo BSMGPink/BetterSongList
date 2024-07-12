@@ -16,7 +16,7 @@ namespace BetterSongList {
 
     std::future<void> PrimitiveFunctionSorter::Prepare() { return std::async(std::launch::deferred, []{}); }
 
-    std::optional<float> PrimitiveFunctionSorter::GetValueFor(GlobalNamespace::IPreviewBeatmapLevel* level) const {
+    std::optional<float> PrimitiveFunctionSorter::GetValueFor(GlobalNamespace::BeatmapLevel* level) const {
         return sortValueGetter(level);
     }
     /* PrimitiveFunctionSorter */
@@ -30,7 +30,7 @@ namespace BetterSongList {
         ISorterWithLegend(), 
         legendValueGetter(legendFunc) {}
     
-    ISorterWithLegend::Legend PrimitiveFunctionSorterWithLegend::BuildLegend(ArrayW<GlobalNamespace::IPreviewBeatmapLevel*> levels) const {
+    ISorterWithLegend::Legend PrimitiveFunctionSorterWithLegend::BuildLegend(ArrayW<GlobalNamespace::BeatmapLevel*> levels) const {
 		return SongListLegendBuilder::BuildFor(levels, legendValueGetter);
     }
 
@@ -49,7 +49,7 @@ namespace BetterSongList {
 
     std::future<void> ComparableFunctionSorter::Prepare() { return std::async(std::launch::deferred, []{}); }
 
-    void ComparableFunctionSorter::DoSort(ArrayW<GlobalNamespace::IPreviewBeatmapLevel*>& levels, bool ascending) const {
+    void ComparableFunctionSorter::DoSort(ArrayW<GlobalNamespace::BeatmapLevel*>& levels, bool ascending) const {
         if (ascending) {
             std::sort(levels.rbegin(), levels.rend(), *this);
         } else {
@@ -57,7 +57,7 @@ namespace BetterSongList {
         }
     }
 
-    int ComparableFunctionSorter::operator ()(GlobalNamespace::IPreviewBeatmapLevel* lhs, GlobalNamespace::IPreviewBeatmapLevel* rhs) const {
+    int ComparableFunctionSorter::operator ()(GlobalNamespace::BeatmapLevel* lhs, GlobalNamespace::BeatmapLevel* rhs) const {
         return sortValueGetter(lhs, rhs);
     }
     /* ComparableFunctionSorter */
@@ -73,7 +73,7 @@ namespace BetterSongList {
 
     }
 
-    ISorterWithLegend::Legend ComparableFunctionSorterWithLegend::BuildLegend(ArrayW<GlobalNamespace::IPreviewBeatmapLevel*> levels) const {
+    ISorterWithLegend::Legend ComparableFunctionSorterWithLegend::BuildLegend(ArrayW<GlobalNamespace::BeatmapLevel*> levels) const {
 		return SongListLegendBuilder::BuildFor(levels, legendValueGetter);
     }
     /* ComparableFunctionSorterWithLegend */

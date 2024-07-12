@@ -2,15 +2,18 @@
 #include "config.hpp"
 #include "logging.hpp"
 
-#include "songloader/include/CustomTypes/SongLoader.hpp"
-#include "GlobalNamespace/IBeatmapLevelCollection.hpp"
+#include "GlobalNamespace/BeatmapLevelPack.hpp"
+
+#include "System/Collections/Generic/IReadOnlyList_1.hpp"
+
+#include "songcore/shared/SongCore.hpp"
 
 #include "UI/FilterUI.hpp"
 
 namespace BetterSongList::Hooks {
-    SafePtr<GlobalNamespace::IAnnotatedBeatmapLevelCollection> HookSelectedCollection::lastSelectedCollection;
+    SafePtr<GlobalNamespace::BeatmapLevelPack> HookSelectedCollection::lastSelectedCollection;
 
-    GlobalNamespace::IAnnotatedBeatmapLevelCollection* HookSelectedCollection::get_lastSelectedCollection() {
+    GlobalNamespace::BeatmapLevelPack* HookSelectedCollection::get_lastSelectedCollection() {
         if (!lastSelectedCollection) {
             return nullptr;
         }
@@ -18,20 +21,16 @@ namespace BetterSongList::Hooks {
     }
 
     // same as CollectionSet
-    void HookSelectedCollection::AnnotatedBeatmapLevelCollectionsViewController_HandleDidSelectAnnotatedBeatmapLevelCollection_Prefix(GlobalNamespace::IAnnotatedBeatmapLevelCollection* beatmapLevelCollection) {
+    void HookSelectedCollection::AnnotatedBeatmapLevelCollectionsViewController_HandleDidSelectAnnotatedBeatmapLevelCollection_Prefix(GlobalNamespace::BeatmapLevelPack* beatmapLevelCollection) {
         if (beatmapLevelCollection) {
             INFO("Setting last selected pack");
-            auto beatmapLevelPack = il2cpp_utils::try_cast<GlobalNamespace::IBeatmapLevelPack>(beatmapLevelCollection);
-            auto name = beatmapLevelPack.has_value() ? beatmapLevelPack.value()->get_packID() : nullptr;
+            auto name = beatmapLevelCollection->packID;
             config.set_lastPack(name ? static_cast<std::string>(name) : "");
             INFO("It is now '{}'", config.get_lastPack());
         }
 
-        INFO("AnnotatedBeatmapLevelCollectionsViewController.HandleDidSelectAnnotatedBeatmapLevelCollection(): {0}", beatmapLevelCollection ? beatmapLevelCollection->get_collectionName() : "NULL");
-        auto songLoader = RuntimeSongLoader::SongLoader::GetInstance();
-        auto customLevelspack = songLoader->CustomLevelsPack;
-        auto actualPack = customLevelspack ? customLevelspack->CustomLevelsPack : nullptr;
-        auto pack = actualPack ? actualPack->i_IBeatmapLevelPack()->i_IAnnotatedBeatmapLevelCollection() : nullptr;
+        INFO("AnnotatedBeatmapLevelCollectionsViewController.HandleDidSelectAnnotatedBeatmapLevelCollection(): {0}", beatmapLevelCollection ? beatmapLevelCollection->packName : "NULL");
+        auto pack = SongCore::API::Loading::GetCustomLevelPack();
 
         auto instance = FilterUI::get_instance();
         if (beatmapLevelCollection && config.get_clearFiltersOnPlaylistSelect() && beatmapLevelCollection != pack) {
@@ -56,7 +55,6 @@ namespace BetterSongList::Hooks {
 
     // HookLevelCollectionInit
     void HookSelectedCollection::AnnotatedBeatmapLevelCollectionsViewController_SetData_PostFix(GlobalNamespace::AnnotatedBeatmapLevelCollectionsViewController* self) {
-        AnnotatedBeatmapLevelCollectionsViewController_HandleDidSelectAnnotatedBeatmapLevelCollection_Prefix(self->get_selectedAnnotatedBeatmapLevelCollection());
+        AnnotatedBeatmapLevelCollectionsViewController_HandleDidSelectAnnotatedBeatmapLevelCollection_Prefix(self->_annotatedBeatmapLevelCollections->get_Item(self->_selectedItemIndex));
     }
-
 }

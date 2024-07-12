@@ -8,6 +8,9 @@ project(${COMPILE_ID})
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED 20)
 
+# Autocomplete
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # Enable link time optimization
 # In my experience, this can be highly unstable but it nets a huge size optimization and likely performance
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)

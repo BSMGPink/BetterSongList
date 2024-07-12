@@ -3,15 +3,10 @@
 
 #include "Utils/SongListLegendBuilder.hpp"
 
-#include "GlobalNamespace/IBeatmapLevelPack.hpp"
-#include "GlobalNamespace/IBeatmapLevelPackCollection.hpp"
-#include "GlobalNamespace/CustomPreviewBeatmapLevel.hpp"
+#include "GlobalNamespace/BeatmapLevelPack.hpp"
+#include "GlobalNamespace/BeatmapLevel.hpp"
 
-#include "songloader/shared/API.hpp"
-#include "songloader/include/CustomTypes/SongLoader.hpp" 
-#include "songloader/include/Utils/FindComponentsUtils.hpp"
-
-#include "questui/shared/CustomTypes/Components/MainThreadScheduler.hpp"
+#include "bsml/shared/BSML/MainThreadScheduler.hpp"
 
 #include <sys/stat.h>
 #include <time.h>
@@ -33,41 +28,23 @@ namespace BetterSongList {
         return Prepare(false);
     }
 
-    void FolderDateSorter::OnSongsLoaded(const std::vector<GlobalNamespace::CustomPreviewBeatmapLevel*>& songs) {
+    void FolderDateSorter::OnSongsLoaded(const std::vector<SongCore::SongLoader::CustomBeatmapLevel*>& songs) {
         Prepare(false);
     }
 
     void FolderDateSorter::GatherFolderInfoThread(bool fullReload) {
-        std::string fpath = "/info.dat";
-
-        GlobalNamespace::BeatmapLevelsModel* beatmapLevelsModel = nullptr; 
-        // dispatch getting this thing on main thread
-        QuestUI::MainThreadScheduler::Schedule([&beatmapLevelsModel](){
-            // captured by reference so that's pogger
-            beatmapLevelsModel = RuntimeSongLoader::FindComponentsUtils::GetBeatmapLevelsModel();
-            if (!beatmapLevelsModel) {
-                ERROR("Oh fuck we could not get beatmapLevelsModel: {}", fmt::ptr(beatmapLevelsModel));
-            }
-        });
-
-        // wait for it to be set
-        while (!beatmapLevelsModel) std::this_thread::yield();
         
-        auto dict = beatmapLevelsModel->loadedPreviewBeatmapLevels;
-        auto enumerator = dict->GetEnumerator();
-        while(enumerator.MoveNext()) {
-            auto level = enumerator.get_Current();
-            auto customLevel = il2cpp_utils::try_cast<GlobalNamespace::CustomPreviewBeatmapLevel>(level.get_Value()).value_or(nullptr);
-            if (customLevel) {
-                std::string levelID = customLevel->get_levelID();
-                auto itr = songTimes.find(levelID);
-                if (itr != songTimes.end() && !fullReload) continue;
+        auto levels = SongCore::API::Loading::GetAllLevels();
 
-                struct stat fileStat = {0};
-                std::string filePath = customLevel->get_customLevelPath() + fpath;
-                if (stat(filePath.c_str(), &fileStat) == 0) {
-                    songTimes[levelID] = fileStat.st_ctim.tv_sec;
-                }
+        for (auto level : levels) {
+            std::string levelID = level->levelID;
+            auto itr = songTimes.find(levelID);
+            if (itr != songTimes.end() && !fullReload) continue;
+
+            struct stat fileStat = {0};
+            std::string filePath = std::string(level->get_customLevelPath());
+            if (stat(filePath.c_str(), &fileStat) == 0) {
+                songTimes[levelID] = fileStat.st_ctim.tv_sec;
             }
         }
 
@@ -80,25 +57,25 @@ namespace BetterSongList {
         }
         isLoading = true;
         return std::async(std::launch::async, [fullReload, this](){
-            auto loader = RuntimeSongLoader::SongLoader::GetInstance();
-            while(!loader->HasLoaded || loader->IsLoading) std::this_thread::yield();
+            auto hasLoaded = SongCore::API::Loading::AreSongsLoaded();
+            while(!hasLoaded) std::this_thread::yield();
             
             this->FolderDateSorter::GatherFolderInfoThread(fullReload);
         });
     }
 
-    std::optional<float> FolderDateSorter::GetValueFor(GlobalNamespace::IPreviewBeatmapLevel* level) const {
-		std::string levelId = level ? level->get_levelID() : "";
+    std::optional<float> FolderDateSorter::GetValueFor(GlobalNamespace::BeatmapLevel* level) const {
+		std::string levelId = level ? level->levelID : "";
         if (levelId.empty()) return std::nullopt;
         auto itr = songTimes.find(levelId);
         if (itr != songTimes.end()) return itr->second;
         return std::nullopt;
     }
 
-    ISorterWithLegend::Legend FolderDateSorter::BuildLegend(ArrayW<GlobalNamespace::IPreviewBeatmapLevel*> levels) const {
+    ISorterWithLegend::Legend FolderDateSorter::BuildLegend(ArrayW<GlobalNamespace::BeatmapLevel*> levels) const {
         time_t now = time(NULL);
-        return SongListLegendBuilder::BuildFor(levels, [now](GlobalNamespace::IPreviewBeatmapLevel* level) -> std::string {
-            std::string levelId = level ? level->get_levelID() : "";
+        return SongListLegendBuilder::BuildFor(levels, [now](GlobalNamespace::BeatmapLevel* level) -> std::string {
+            std::string levelId = level ? level->levelID : "";
             if (levelId.empty()) return "";
             auto itr = songTimes.find(levelId);
             if (itr == songTimes.end()) return "";

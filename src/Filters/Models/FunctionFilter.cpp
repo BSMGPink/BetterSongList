@@ -1,7 +1,7 @@
 #include "Filters/Models/FunctionFilter.hpp"
 
 namespace BetterSongList {
-    FunctionFilter::FunctionFilter(const std::function<bool(GlobalNamespace::IPreviewBeatmapLevel*)>& func) 
+    FunctionFilter::FunctionFilter(const std::function<bool(GlobalNamespace::BeatmapLevel*)>& func) 
         : IFilter(), valueProvider(func) {
 
         }
@@ -14,7 +14,7 @@ namespace BetterSongList {
         return std::async(std::launch::deferred, []{});
     }
 
-    bool FunctionFilter::GetValueFor(GlobalNamespace::IPreviewBeatmapLevel* level) { 
+    bool FunctionFilter::GetValueFor(GlobalNamespace::BeatmapLevel* level) { 
         return valueProvider(level); 
     }
 }

@@ -20,7 +20,7 @@
 #include "sombrero/shared/MiscUtils.hpp"
 
 #include "GlobalNamespace/LevelCollectionTableView.hpp"
-#include "GlobalNamespace/SharedCoroutineStarter.hpp"
+#include "bsml/shared/BSML/SharedCoroutineStarter.hpp"
 #include "UnityEngine/WaitForSeconds.hpp"
 #include "HMUI/SimpleTextDropdown.hpp"
 
@@ -40,18 +40,18 @@ namespace BetterSongList {
     std::map<std::string, BetterSongList::IFilter*> FilterUI::filterOptions;
 
     void FilterUI::ctor() {
-        sortOptionsList = List<StringW>::New_ctor();
-        filterOptionsList = List<StringW>::New_ctor();
+        sortOptionsList = ListW<StringW>::New();
+        filterOptionsList = ListW<StringW>::New();
     }
 
     void FilterUI::UpdateDropdowns() {
         DEBUG("FilterUI::UpdateDropdowns");
-        if (sortDropDown && sortDropDown->m_CachedPtr.m_value) {
+        if (sortDropDown && sortDropDown->___m_CachedPtr.m_value) {
             sortDropDown->dropdown->ReloadData();
             //reinterpret_cast<HMUI::SimpleTextDropdown*>(sortDropDown)->SetTexts(sortOptionsList->i_IReadOnlyList_1_T());
             HackDropdown(sortDropDown->dropdown);
         }
-        if (filterDropDown && filterDropDown->m_CachedPtr.m_value) {
+        if (filterDropDown && filterDropDown->___m_CachedPtr.m_value) {
             filterDropDown->dropdown->ReloadData();
             //reinterpret_cast<HMUI::SimpleTextDropdown*>(filterDropDown)->SetTexts(filterOptionsList->i_IReadOnlyList_1_T());
             HackDropdown(filterDropDown->dropdown);
@@ -73,7 +73,7 @@ namespace BetterSongList {
     void FilterUI::SelectRandom() {
 		auto x = UnityEngine::Object::FindObjectOfType<GlobalNamespace::LevelCollectionTableView*>();
 
-        if (!x || !x->m_CachedPtr.m_value) return;
+        if (!x || !x->___m_CachedPtr.m_value) return;
 
         auto ml = HookLevelCollectionTableSet::get_lastOutMapList();
         if (!ml) ml = HookLevelCollectionTableSet::get_lastInMapList();
@@ -209,7 +209,7 @@ namespace BetterSongList {
         }
 
         auto dropDown = instance->sortDropDown;
-        if (dropDown && dropDown->m_CachedPtr.m_value) {
+        if (dropDown && dropDown->___m_CachedPtr.m_value) {
             auto sortList = instance->sortOptionsList;
             auto itr = std::find(sortList.begin(), sortList.end(), selected);
             if (itr != sortList.end()) {
@@ -257,7 +257,7 @@ namespace BetterSongList {
         }
 
         auto dropDown = instance->filterDropDown;
-        if (dropDown && dropDown->m_CachedPtr.m_value) {
+        if (dropDown && dropDown->___m_CachedPtr.m_value) {
             auto filterList = instance->filterOptionsList;
             auto itr = std::find(filterList.begin(), filterList.end(), selected);
             if (itr != filterList.end()) {
@@ -281,7 +281,7 @@ namespace BetterSongList {
         }
 
 		auto sortDirection = get_instance()->sortDirection;
-        if (sortDirection && sortDirection->m_CachedPtr.m_value) {
+        if (sortDirection && sortDirection->___m_CachedPtr.m_value) {
             BSML::Utilities::SetImage(sortDirection, ascending ? "BetterSongList_carat_up" : "BetterSongList_carat_down");
         } else {
             ERROR("Sort direction image not set");
@@ -298,10 +298,10 @@ namespace BetterSongList {
 
     void FilterUI::AttachTo(UnityEngine::Transform* target) {
         auto instance = get_instance();
-        BSML::parse_and_construct(IncludedAssets::MainUI_bsml, target, instance);
+        BSML::parse_and_construct(IncludedAssets::MainUI_bsml, target, reinterpret_cast<System::Object*>(instance));
         
         auto root = instance->root;
-		root->set_localScale(root->get_localScale() * 0.7f);
+		root->set_localScale(UnityEngine::Vector3::op_Multiply(root->get_localScale(), 0.7f));
 
         auto targetRectT = reinterpret_cast<RectTransform*>(target);
         auto sd = targetRectT->get_sizeDelta();
@@ -315,30 +315,30 @@ namespace BetterSongList {
 
     void FilterUI::HackDropdown(HMUI::DropdownWithTableView* dropdown) {
         int c = std::min(9, dropdown->get_tableViewDataSource()->NumberOfCells());
-        dropdown->numberOfVisibleCells = c;
+        dropdown->____numberOfVisibleCells = c;
         dropdown->ReloadData();
     }
 
     void FilterUI::ShowErrorASAP(std::string_view text) {
         if (!text.empty()) warnings.push(static_cast<std::string>(text));
         if (!warningLoadInProgress)
-            GlobalNamespace::SharedCoroutineStarter::get_instance()->StartCoroutine(custom_types::Helpers::CoroutineHelper::New(_ShowError()));
+            BSML::SharedCoroutineStarter::get_instance()->StartCoroutine(custom_types::Helpers::CoroutineHelper::New(_ShowError()));
     }
 
     custom_types::Helpers::Coroutine FilterUI::_ShowError() {
 		warningLoadInProgress = true;
         // wait till we can display
-        while (!failTextLabel || !failTextLabel->m_CachedPtr.m_value) co_yield nullptr;
+        while (!failTextLabel || !failTextLabel->___m_CachedPtr.m_value) co_yield nullptr;
 
         auto x = failTextLabel->GetComponentInParent<HMUI::ViewController*>();
-        if (x && x->m_CachedPtr.m_value) {
+        if (x && x->___m_CachedPtr.m_value) {
             while (x->get_isInTransition()) co_yield nullptr;
 
             if (x->get_isActivated() && warnings.size() > 0) {
                 failTextLabel->set_text(warnings.front());
                 warnings.pop();
 
-                if (incompatibilityModal && incompatibilityModal->m_CachedPtr.m_value) {
+                if (incompatibilityModal && incompatibilityModal->___m_CachedPtr.m_value) {
                     incompatibilityModal->Show();
                 }
             }
@@ -349,7 +349,7 @@ namespace BetterSongList {
     }
 
     void FilterUI::CloseWarningModal() {
-        if (incompatibilityModal && incompatibilityModal->m_CachedPtr.m_value) {
+        if (incompatibilityModal && incompatibilityModal->___m_CachedPtr.m_value) {
             incompatibilityModal->Hide();
         }
         PossiblyShowNextWarning();

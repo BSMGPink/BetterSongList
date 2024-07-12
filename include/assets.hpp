@@ -9,20 +9,21 @@ struct IncludedAsset {
         array->klass = nullptr;
         array->monitor = nullptr;
         array->bounds = nullptr;
-        array->max_length = end - start - 32;
+        array->max_length = end - start - 33;
+        *(end - 1)= '\0';
     }
-    
+
     operator ArrayW<uint8_t>() const {
         init();
         return array;
     }
 
     operator std::string_view() const {
-        return { reinterpret_cast<char*>(array->values), array->Length() };
+        return { reinterpret_cast<char*>(array->_values), array->get_Length() };
     }
-    
+
     operator std::span<uint8_t>() const {
-        return { array->values, array->Length() };
+        return { array->_values, array->get_Length() };
     }
 
     void init() const {
@@ -35,18 +36,15 @@ struct IncludedAsset {
 
 };
 
-#define DECLARE_FILE(name)                         \
+#define DECLARE_FILE(name)                          \
     extern "C" uint8_t _binary_##name##_start[];  \
     extern "C" uint8_t _binary_##name##_end[];    \
     const IncludedAsset name { _binary_##name##_start, _binary_##name##_end};
 
 namespace IncludedAssets {
-
 	DECLARE_FILE(CaratDown_png)
 	DECLARE_FILE(CaratUp_png)
 	DECLARE_FILE(DoubleArrowIcon_png)
 	DECLARE_FILE(MainUI_bsml)
 	DECLARE_FILE(Settings_bsml)
-	DECLARE_FILE(SongDeleteConfirm_bsml)
-
 }

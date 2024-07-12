@@ -8,25 +8,28 @@
 #include "Filters/Models/RequirementsFilter.hpp"
 
 namespace BetterSongList {
-    static BasicSongDetailsFilter ranked([](const SDC_wrapper::BeatStarSong* x){ 
-        auto diffs = x->GetDifficultyVector();
-        for (auto diff : diffs) if (diff->ranked) return true;
-        return false;
+    static BasicSongDetailsFilter blqualified([](const SongDetailsCache::Song* x){ 
+        return hasFlags(x->rankedStates, SongDetailsCache::RankedStates::BeatleaderQualified);
+    });
+
+    static BasicSongDetailsFilter blranked([](const SongDetailsCache::Song* x){ 
+        return hasFlags(x->rankedStates, SongDetailsCache::RankedStates::BeatleaderRanked);
+    });
+
+    // Legacy ranked filter
+    static BasicSongDetailsFilter ranked([](const SongDetailsCache::Song* x){ 
+        return hasFlags(x->rankedStates, SongDetailsCache::RankedStates::ScoresaberRanked );
     });
     
-    static BasicSongDetailsFilter unranked([](const SDC_wrapper::BeatStarSong* x){ 
-        auto diffs = x->GetDifficultyVector();
-        for (auto diff : diffs) if (diff->ranked) return false;
-        return true;
+    static BasicSongDetailsFilter unranked([](const SongDetailsCache::Song* x){ 
+        return x->rankedStatus == SongDetailsCache::RankedStatus::Unranked;
     });
 
-    static BasicSongDetailsFilter qualified([](const SDC_wrapper::BeatStarSong* x) {
-        // FIXME: this filter is not gonna be done right now
-        // mostly because the data is not available in SDC and making it available is a not now thing
-        return false;
+    static BasicSongDetailsFilter qualified([](const SongDetailsCache::Song* x) {
+        return x->rankedStatus == SongDetailsCache::RankedStatus::Qualified;
     });
 
-    static BasicSongDetailsFilter onBeatsaver([](const SDC_wrapper::BeatStarSong* x) { return true; });
+    static BasicSongDetailsFilter onBeatsaver([](const SongDetailsCache::Song* x) { return true; });
 
     static PlayedFilter unplayed(true);
     static PlayedFilter played{};
@@ -59,7 +62,9 @@ namespace BetterSongList {
     }
 
     std::map<std::string, IFilter*> FilterMethods::methods{
-        {"Ranked", &ranked},
+        {"BL Qualified", &blqualified},
+        {"BL Ranked", &blranked},
+        {"SS Ranked", &ranked},
 		{"Unplayed", &unplayed},
 		{"Played", &played},
 		{"Requirements", &requirements},

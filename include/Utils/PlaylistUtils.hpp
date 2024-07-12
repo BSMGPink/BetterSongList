@@ -1,8 +1,7 @@
 #pragma once
 
-#include "GlobalNamespace/IBeatmapLevelPack.hpp"
-#include "GlobalNamespace/IPreviewBeatmapLevel.hpp"
-#include "GlobalNamespace/IAnnotatedBeatmapLevelCollection.hpp"
+#include "GlobalNamespace/BeatmapLevelPack.hpp"
+#include "GlobalNamespace/BeatmapLevel.hpp"
 #include "System/Collections/Generic/Dictionary_2.hpp"
 
 namespace BetterSongList::PlaylistUtils {
@@ -10,10 +9,9 @@ namespace BetterSongList::PlaylistUtils {
     using Dictionary = System::Collections::Generic::Dictionary_2<T, U>;
     
     bool get_hasPlaylistLib();
-    Dictionary<StringW, GlobalNamespace::IBeatmapLevelPack*>* get_builtinPacks();
+    Dictionary<StringW, GlobalNamespace::BeatmapLevelPack*>* get_builtinPacks();
 
     void Init();
-    GlobalNamespace::IBeatmapLevelPack* GetPack(StringW packID);
-    bool IsCollection(GlobalNamespace::IAnnotatedBeatmapLevelCollection* levelCollection);
-    ArrayW<GlobalNamespace::IPreviewBeatmapLevel*> GetLevelsForLevelCollection(GlobalNamespace::IAnnotatedBeatmapLevelCollection* levelCollection);
+    GlobalNamespace::BeatmapLevelPack* GetPack(StringW packID);
+    ArrayW<GlobalNamespace::BeatmapLevel*> GetLevelsForLevelCollection(GlobalNamespace::BeatmapLevelPack* levelCollection);
 }

@@ -18,10 +18,9 @@
 #include "UnityEngine/RectTransform.hpp"
 #include "HMUI/AlphabetScrollbar.hpp"
 #include "GlobalNamespace/AlphabetScrollInfo.hpp"
-#include "GlobalNamespace/AlphabetScrollInfo_Data.hpp"
 
 #include "sombrero/shared/linq_functional.hpp"
-#include "questui/shared/CustomTypes/Components/MainThreadScheduler.hpp"
+#include "bsml/shared/BSML/MainThreadScheduler.hpp"
 
 #include "UI/FilterUI.hpp"
 #include <cxxabi.h>
@@ -32,21 +31,21 @@
 namespace BetterSongList::Hooks {
     ISorter* HookLevelCollectionTableSet::sorter;
     IFilter* HookLevelCollectionTableSet::filter;
-    std::function<void(ArrayW<GlobalNamespace::IPreviewBeatmapLevel*>)> HookLevelCollectionTableSet::recallLast;
-    SafePtr<Array<GlobalNamespace::IPreviewBeatmapLevel*>> HookLevelCollectionTableSet::lastInMapList;
-    SafePtr<Array<GlobalNamespace::IPreviewBeatmapLevel*>> HookLevelCollectionTableSet::lastOutMapList;
-    SafePtr<Array<GlobalNamespace::IPreviewBeatmapLevel*>> HookLevelCollectionTableSet::asyncPreProcessed;
+    std::function<void(ArrayW<GlobalNamespace::BeatmapLevel*>)> HookLevelCollectionTableSet::recallLast;
+    SafePtr<Array<GlobalNamespace::BeatmapLevel*>> HookLevelCollectionTableSet::lastInMapList;
+    SafePtr<Array<GlobalNamespace::BeatmapLevel*>> HookLevelCollectionTableSet::lastOutMapList;
+    SafePtr<Array<GlobalNamespace::BeatmapLevel*>> HookLevelCollectionTableSet::asyncPreProcessed;
     ISorterWithLegend::Legend HookLevelCollectionTableSet::customLegend;
     bool HookLevelCollectionTableSet::prepareThreadCurrentlyRunning = false;
 
-    ArrayW<GlobalNamespace::IPreviewBeatmapLevel*> HookLevelCollectionTableSet::get_lastInMapList() {
+    ArrayW<GlobalNamespace::BeatmapLevel*> HookLevelCollectionTableSet::get_lastInMapList() {
         if (!lastInMapList) {
             return nullptr;
         }
         return lastInMapList.ptr();
     }
 
-    ArrayW<GlobalNamespace::IPreviewBeatmapLevel*> HookLevelCollectionTableSet::get_lastOutMapList() {
+    ArrayW<GlobalNamespace::BeatmapLevel*> HookLevelCollectionTableSet::get_lastOutMapList() {
         if (!lastOutMapList) {
             return nullptr;
         }
@@ -68,7 +67,7 @@ namespace BetterSongList::Hooks {
             PrepareStuffIfNecessary([](){
                 auto inList = get_lastInMapList();
                 FilterWrapper(inList);
-                asyncPreProcessed.emplace(static_cast<Array<GlobalNamespace::IPreviewBeatmapLevel*>*>(inList));
+                asyncPreProcessed.emplace(static_cast<Array<GlobalNamespace::BeatmapLevel*>*>(inList));
                 Refresh(false, false);
             }, true);
             return;
@@ -79,7 +78,7 @@ namespace BetterSongList::Hooks {
         if (recallLast) recallLast(ml);
     }
 
-    void HookLevelCollectionTableSet::FilterWrapper(ArrayW<GlobalNamespace::IPreviewBeatmapLevel*>& previewBeatmapLevels) {
+    void HookLevelCollectionTableSet::FilterWrapper(ArrayW<GlobalNamespace::BeatmapLevel*>& previewBeatmapLevels) {
         if (!previewBeatmapLevels) {
             return;
         }
@@ -114,7 +113,7 @@ namespace BetterSongList::Hooks {
             else if (sorter && sorter->as<ISorterPrimitive*>()) {
                 // sorting is the same regardless of ascending or descending, since the way we differentiate between ascending and descending is to just use the reverse iterators if ascending
                 auto sort = [primitiveSorter = castedSorter.primitiveSorter]
-                (GlobalNamespace::IPreviewBeatmapLevel* lhs, GlobalNamespace::IPreviewBeatmapLevel* rhs) -> bool {
+                (GlobalNamespace::BeatmapLevel* lhs, GlobalNamespace::BeatmapLevel* rhs) -> bool {
                     return primitiveSorter->GetValueFor(lhs) < primitiveSorter->GetValueFor(rhs);
                 };
 
@@ -154,7 +153,7 @@ namespace BetterSongList::Hooks {
         if ((filter && !filter->get_isReady()) || (sorter && !sorter->get_isReady())) {
             auto instance = FilterUI::get_instance();
             auto indicator = instance->filterLoadingIndicator;
-            if (indicator && indicator->m_CachedPtr.m_value) {
+            if (indicator && indicator->___m_CachedPtr.m_value) {
                 indicator->get_gameObject()->SetActive(true);
             }
 
@@ -182,7 +181,7 @@ namespace BetterSongList::Hooks {
 
                 if (!*thisDoCancelSort.lock().get() && cb) {
                     // main thread because cb possibly does main thread things
-                    QuestUI::MainThreadScheduler::Schedule(cb);
+                    BSML::MainThreadScheduler::Schedule(cb);
                 }
             }, doCancelSort).detach();
 
@@ -195,7 +194,7 @@ namespace BetterSongList::Hooks {
         return false;
     }
 
-    void HookLevelCollectionTableSet::LevelCollectionTableView_SetData_Prefix(GlobalNamespace::LevelCollectionTableView* self, ArrayW<GlobalNamespace::IPreviewBeatmapLevel*>& previewBeatmapLevels, HashSet<StringW>* favoriteLevelIds, bool& beatmapLevelsAreSorted) {
+    void HookLevelCollectionTableSet::LevelCollectionTableView_SetData_Prefix(GlobalNamespace::LevelCollectionTableView* self, ArrayW<GlobalNamespace::BeatmapLevel*>& previewBeatmapLevels, HashSet<StringW>* favoriteLevelIds, bool& beatmapLevelsAreSorted) {
         DEBUG("LevelCollectionTableView.SetData() : Prefix");
         if (get_lastInMapList() && previewBeatmapLevels.convert() == get_lastInMapList().convert() && get_lastOutMapList()) {
             DEBUG("LevelCollectionTableView.SetData() : Prefix -> levels = lastout because {} == {}", previewBeatmapLevels.convert(), get_lastInMapList().convert());
@@ -210,15 +209,15 @@ namespace BetterSongList::Hooks {
             }
         }
 
-        lastInMapList.emplace(static_cast<Array<GlobalNamespace::IPreviewBeatmapLevel*>*>(previewBeatmapLevels));
+        lastInMapList.emplace(static_cast<Array<GlobalNamespace::BeatmapLevel*>*>(previewBeatmapLevels));
         auto isSorted = beatmapLevelsAreSorted;
-        recallLast = [self, favoriteLevelIds, isSorted](ArrayW<GlobalNamespace::IPreviewBeatmapLevel *> overrideData){
-            auto data = overrideData ? static_cast<Array<GlobalNamespace::IPreviewBeatmapLevel*>*>(overrideData) : get_lastInMapList();
+        recallLast = [self, favoriteLevelIds, isSorted](ArrayW<GlobalNamespace::BeatmapLevel *> overrideData){
+            auto data = overrideData ? static_cast<Array<GlobalNamespace::BeatmapLevel*>*>(overrideData) : get_lastInMapList();
             INFO("recallLast, Data: {}", data.convert());
             if (data) {
-                INFO("Setting data with {} levels", data->Length());
+                INFO("Setting data with {} levels", data->get_Length());
             }
-            self->SetData((System::Collections::Generic::IReadOnlyList_1<GlobalNamespace::IPreviewBeatmapLevel*>*)data.convert(), favoriteLevelIds, isSorted);
+            self->SetData((System::Collections::Generic::IReadOnlyList_1<GlobalNamespace::BeatmapLevel*>*)data.convert(), favoriteLevelIds, isSorted, !isSorted);
         };
 
         if (!sorter || sorter->get_isReady()) {
@@ -232,7 +231,7 @@ namespace BetterSongList::Hooks {
 
         auto instance = FilterUI::get_instance();
         auto loadingIndicator = instance->filterLoadingIndicator;
-        if (loadingIndicator && loadingIndicator->m_CachedPtr.m_value) {
+        if (loadingIndicator && loadingIndicator->___m_CachedPtr.m_value) {
             loadingIndicator->get_gameObject()->SetActive(false);
         }
 
@@ -246,20 +245,20 @@ namespace BetterSongList::Hooks {
         FilterWrapper(previewBeatmapLevels);
     }
 
-    void HookLevelCollectionTableSet::LevelCollectionTableView_SetData_PostFix(GlobalNamespace::LevelCollectionTableView* self, ArrayW<GlobalNamespace::IPreviewBeatmapLevel*> previewBeatmapLevels) {
+    void HookLevelCollectionTableSet::LevelCollectionTableView_SetData_PostFix(GlobalNamespace::LevelCollectionTableView* self, ArrayW<GlobalNamespace::BeatmapLevel*> previewBeatmapLevels) {
         DEBUG("HookLevelCollectionTableSet::PostFix({}, {})", fmt::ptr(self), previewBeatmapLevels ? previewBeatmapLevels.size() : 0);
-        lastOutMapList.emplace(static_cast<Array<GlobalNamespace::IPreviewBeatmapLevel*>*>(previewBeatmapLevels));
+        lastOutMapList.emplace(static_cast<Array<GlobalNamespace::BeatmapLevel*>*>(previewBeatmapLevels));
         if (customLegend.empty()) return;
-        auto alphabetScrollBar = self->alphabetScrollbar;
+        auto alphabetScrollBar = self->____alphabetScrollbar;
         auto data = ArrayW<GlobalNamespace::AlphabetScrollInfo::Data*>(il2cpp_array_size_t(customLegend.size()));
-        DEBUG("Legend size: {}, {}", data->Length(), customLegend.size());
+        DEBUG("Legend size: {}, {}", data->get_Length(), customLegend.size());
         for (int i = 0; const auto& [key, value] : customLegend)
             data[i++] = GlobalNamespace::AlphabetScrollInfo::Data::New_ctor(u'?', value);
         DEBUG("Setting data");
         alphabetScrollBar->SetData(reinterpret_cast<System::Collections::Generic::IReadOnlyList_1<GlobalNamespace::AlphabetScrollInfo::Data*>*>(data.convert()));
 
         DEBUG("making texts");
-        ListWrapper<TMPro::TextMeshProUGUI*> texts{alphabetScrollBar->texts};
+        ListW<TMPro::TextMeshProUGUI*> texts{alphabetScrollBar->____texts};
         DEBUG("setting values");
         for (int i = 0; const auto& [key, value] : customLegend) {
             DEBUG("{}: {}", i, key);
@@ -268,8 +267,8 @@ namespace BetterSongList::Hooks {
 
         DEBUG("Legend Clear");
         customLegend.clear();
-        auto tableViewT = reinterpret_cast<UnityEngine::RectTransform*>(self->tableView->get_transform());
-        auto scrollBarT = reinterpret_cast<UnityEngine::RectTransform*>(alphabetScrollBar->get_transform());
+        auto tableViewT = self->____tableView->get_transform().try_cast<UnityEngine::RectTransform>().value_or(nullptr);
+        auto scrollBarT = alphabetScrollBar->get_transform().try_cast<UnityEngine::RectTransform>().value_or(nullptr);
         tableViewT->set_offsetMin({scrollBarT->get_rect().get_size().x + 1.0f, 0.0f});
         alphabetScrollBar->get_gameObject()->SetActive(true);
         DEBUG("scroll bar active!");

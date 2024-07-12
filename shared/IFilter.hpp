@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GlobalNamespace/IPreviewBeatmapLevel.hpp"
+#include "GlobalNamespace/BeatmapLevel.hpp"
 #include <future>
 
 namespace BetterSongList {
@@ -24,6 +24,6 @@ namespace BetterSongList {
 
             virtual bool get_isReady() const = 0;
             virtual std::future<void> Prepare() = 0;
-            virtual bool GetValueFor(GlobalNamespace::IPreviewBeatmapLevel* level) = 0;
+            virtual bool GetValueFor(GlobalNamespace::BeatmapLevel* level) = 0;
     };
 }

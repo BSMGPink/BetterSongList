@@ -1,12 +1,13 @@
 #include "Filters/Models/RequirementsFilter.hpp"
 #include "logging.hpp"
 
-#include "songloader/shared/API.hpp"
-#include "songloader/shared/CustomTypes/CustomLevelInfoSaveData.hpp"
-#include "songloader/include/CustomTypes/SongLoader.hpp"
+#include "songcore/shared/SongCore.hpp"
+#include "songcore/shared/CustomJSONData.hpp"
 
 #include "System/Threading/Tasks/Task_1.hpp"
 #include "Utils/BeatmapUtils.hpp"
+
+#include "songcore/shared/SongLoader/CustomBeatmapLevel.hpp"
 
 
 namespace BetterSongList {
@@ -16,56 +17,44 @@ namespace BetterSongList {
         : IFilter(), invert(invert) {}
 
     bool RequirementsFilter::get_isReady() const {
-        return RuntimeSongLoader::SongLoader::GetInstance()->HasLoaded;
+        return SongCore::API::Loading::AreSongsLoaded();
     }
 
     std::future<void> RequirementsFilter::Prepare() {
         return std::async(std::launch::async, [this](){
-            auto loader = RuntimeSongLoader::SongLoader::GetInstance();
-            while (!loader->HasLoaded) std::this_thread::yield();
+            auto hasLoaded = SongCore::API::Loading::AreSongsLoaded();
+            while (!hasLoaded) std::this_thread::yield();
         });
     }
 
-    bool RequirementsFilter::GetValueFor(GlobalNamespace::IPreviewBeatmapLevel* level) {
-        auto customLevel = il2cpp_utils::try_cast<GlobalNamespace::CustomPreviewBeatmapLevel>(level).value_or(nullptr);
+    bool RequirementsFilter::GetValueFor(GlobalNamespace::BeatmapLevel* level) {
+        auto customLevel = il2cpp_utils::try_cast<SongCore::SongLoader::CustomBeatmapLevel>(level).value_or(nullptr);
         if (!customLevel) {
             DEBUG("Level was not custom level!");
             return invert;
         }
-        auto saveData = customLevel->get_standardLevelInfoSaveData();
+
+        auto saveData = customLevel->get_standardLevelInfoSaveDataV2().value_or(nullptr);
         if (!saveData) {
             DEBUG("Level had no save data!");
             return invert;
         }
 
-        auto customSaveData = il2cpp_utils::try_cast<CustomJSONData::CustomLevelInfoSaveData>(saveData).value_or(nullptr);
-        if (!customSaveData) {
+        auto sets = saveData->____difficultyBeatmapSets;
 
-            DEBUG("Could not get custom save data!");
-            return invert;
-        }
+        for (auto set : sets) {
+            auto chara = set->____beatmapCharacteristicName;
+            auto diffs = set->____difficultyBeatmaps;
+            for (auto diff : diffs) {
+                auto customData = saveData->get_CustomSaveDataInfo();
+                if (!customData.has_value()) {
+                    continue;
+                }
 
-        if (customSaveData->doc.use_count() <= 0) {
-            DEBUG("Document had use count of 0!");
-            return invert;
-        }
-
-        // :smilew:
-        auto difficultyBeatmapSetsitr = customSaveData->doc->FindMember(u"_difficultyBeatmapSets");
-        if (difficultyBeatmapSetsitr != customSaveData->doc->MemberEnd()) {
-            auto setArr = difficultyBeatmapSetsitr->value.GetArray();
-            for (auto& beatmapCharacteristicItr : setArr) {
-                auto difficultyBeatmaps = beatmapCharacteristicItr.FindMember(u"_difficultyBeatmaps");
-                auto beatmaps = difficultyBeatmaps->value.GetArray();
-                for (auto& beatmap : beatmaps) {
-                    auto customDataItr = beatmap.FindMember(u"_customData");
-                    if (customDataItr != beatmap.MemberEnd()) {
-                        auto& customData = customDataItr->value;
-                        auto requirementsItr = customData.FindMember(u"_requirements");
-                        if (requirementsItr != customData.MemberEnd()) {
-                            if (requirementsItr->value.Size() > 0) return !invert;
-                        }
-                    }
+                auto detailsOpt = customData.value().get().TryGetCharacteristicAndDifficulty(chara, diff->____difficultyRank);
+                if(detailsOpt) {
+                    auto details = detailsOpt.value();
+                    if (details.get().requirements.size() > 0) return !invert;
                 }
             }
         }

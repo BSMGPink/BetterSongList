@@ -2,9 +2,11 @@
 
 #include "Utils/SongDetails.hpp"
 #include "Utils/BeatmapUtils.hpp"
+#include "song-details/shared/SongArray.hpp"
+#include "song-details/shared/SongDetails.hpp"
 
 namespace BetterSongList {
-    BasicSongDetailsFilter::BasicSongDetailsFilter(const std::function<bool(const SDC_wrapper::BeatStarSong*)>& func) 
+    BasicSongDetailsFilter::BasicSongDetailsFilter(const std::function<bool(const SongDetailsCache::Song*)>& func) 
         : IFilter(), IAvailabilityCheck(), filterValueTransformer(func) {
 
     }
@@ -23,18 +25,21 @@ namespace BetterSongList {
         });
     }
     
-    bool BasicSongDetailsFilter::GetValueFor(GlobalNamespace::IPreviewBeatmapLevel* level) { 
-        if (SongDetails::get_songDetails().empty()) {
+    bool BasicSongDetailsFilter::GetValueFor(GlobalNamespace::BeatmapLevel* level) {
+        if (!SongDetails::get_songDetails()->songs.get_isDataAvailable()) {
+            return false;
+        }
+        if (SongDetails::get_songDetails()->songs.size()==0) {
             return false;
         }
 
-        auto h = BeatmapUtils::GetHashOfPreview(level);
+        const std::string h = BeatmapUtils::GetHashOfPreview(level);
         if (h.empty()) return false;
 
-        auto song = SDC_wrapper::BeatStarSong::GetSong(h);
-        if (!song) return false;
+        auto &song = SongDetails::get_songDetails()->songs.FindByHash(h);
+        if (song == SongDetailsCache::Song::none) return false;
 
-        return filterValueTransformer(song);
+        return filterValueTransformer(&song);
     }
 
     std::string BasicSongDetailsFilter::GetUnavailableReason() const { 

@@ -3,11 +3,15 @@
 #include "GlobalNamespace/PlayerDataModel.hpp"
 #include "GlobalNamespace/PlayerData.hpp"
 #include "GlobalNamespace/PlayerLevelStatsData.hpp"
-#include "GlobalNamespace/SharedCoroutineStarter.hpp"
+#include "bsml/shared/BSML/SharedCoroutineStarter.hpp"
+#include "System/Collections/Generic/List_1.hpp"
+#include "System/Collections/Generic/Dictionary_2.hpp"
+
+#include "logging.hpp"
 
 #include "custom-types/shared/coroutine.hpp"
 
-#define COROUTINE(coroutine) GlobalNamespace::SharedCoroutineStarter::get_instance()->StartCoroutine(custom_types::Helpers::CoroutineHelper::New(coroutine));
+#define COROUTINE(coroutine) BSML::SharedCoroutineStarter::get_instance()->StartCoroutine(custom_types::Helpers::CoroutineHelper::New(coroutine));
 
 namespace BetterSongList::LocalScoresUtils {
     SafePtrUnity<GlobalNamespace::PlayerDataModel> playerDataModel;
@@ -37,8 +41,12 @@ namespace BetterSongList::LocalScoresUtils {
         }
 
         auto playerDataModel = get_playerDataModel();
+
         auto playerData = playerDataModel ? playerDataModel->playerData : nullptr;
-        ListWrapper<GlobalNamespace::PlayerLevelStatsData*> levelData{playerData ? playerData->levelsStatsData : nullptr};
+        auto levelData = ListW<GlobalNamespace::PlayerLevelStatsData*>::New();
+        auto stats = playerData ? playerData->get_levelsStatsData()->get_Values()->i___System__Collections__Generic__IEnumerable_1_TValue_() : nullptr;
+        INFO("{}", fmt::ptr(stats));
+        levelData->AddRange(stats);
         if (!levelData) {
             return false;
         }
@@ -54,9 +62,9 @@ namespace BetterSongList::LocalScoresUtils {
         return false;
     }
 
-    bool HasLocalScore(GlobalNamespace::IPreviewBeatmapLevel* level) {
+    bool HasLocalScore(GlobalNamespace::BeatmapLevel* level) {
         if (!level) return false;
-        auto levelId = level->get_levelID();
+        auto levelId = level->levelID;
         return levelId ? HasLocalScore(levelId) : false;
     }
 
@@ -65,14 +73,20 @@ namespace BetterSongList::LocalScoresUtils {
     void Load() {
         if (isLoadingScores || get_hasScores()) return;
         isLoadingScores = true;
-
         auto playerDataModel = get_playerDataModel();
+        INFO("{}", fmt::ptr(playerDataModel));
         auto playerData = playerDataModel ? playerDataModel->get_playerData() : nullptr;
-        List<GlobalNamespace::PlayerLevelStatsData*>* levelData{playerData ? playerData->get_levelsStatsData() : nullptr};
+        INFO("{}", fmt::ptr(playerData));
+        auto levelData = ListW<GlobalNamespace::PlayerLevelStatsData*>::New();
+        auto stats = playerData ? playerData->get_levelsStatsData()->get_Values()->i___System__Collections__Generic__IEnumerable_1_TValue_() : nullptr;
+        INFO("{}", fmt::ptr(stats));
+        levelData->AddRange(stats);
         
         if (levelData) {
-            std::thread([](ListWrapper<GlobalNamespace::PlayerLevelStatsData*> levelData){
+            std::thread([](ListW<GlobalNamespace::PlayerLevelStatsData*> levelData){
+                INFO("x1");
                 for (auto x : levelData) {
+                    INFO("{}", fmt::ptr(x));
                     if (!x->validScore) continue;
                     auto levelId = static_cast<std::string>(x->levelID);
                     if (playedMaps.find(levelId) == playedMaps.end()) {

@@ -44,6 +44,10 @@ struct Config {
         void set_sortAsc(auto value) { sortAsc = value; SaveConfig(); }
         const auto& get_settingsSeenInVersion() { return settingsSeenInVersion; }
         void set_settingsSeenInVersion(const auto& value) { settingsSeenInVersion = value; SaveConfig(); }
+        StringW get_preferredLeaderboard() { return preferredLeaderboard; } 
+        // This is for stability, because I don't know if it will cause crashes with StringW
+        std::string get_preferredLeaderboardAsString() { return preferredLeaderboard; } 
+        void set_preferredLeaderboard(StringW value) { preferredLeaderboard = std::string(value); SaveConfig(); }
 
         void SaveConfig();
         bool LoadConfig();
@@ -65,6 +69,8 @@ struct Config {
         bool allowPluginSortsAndFilters = true;
         bool sortAsc = false;
         std::string settingsSeenInVersion = "";
+        // ScoreSaber or BeatLeader
+        std::string preferredLeaderboard = "ScoreSaber";
 };
 
 extern Config config;

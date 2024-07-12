@@ -2,13 +2,13 @@
 
 #include "UnityEngine/Transform.hpp"
 #include "UnityEngine/WaitForEndOfFrame.hpp"
-#include "GlobalNamespace/SharedCoroutineStarter.hpp"
+#include "bsml/shared/BSML/SharedCoroutineStarter.hpp"
 
 #include "UI/FilterUI.hpp"
 
 namespace BetterSongList::Hooks {
     void BottomUI::LevelCollectionNavigationController_DidActivate_Prefix(GlobalNamespace::LevelCollectionNavigationController* self, bool firstActivation) {
-        auto starter = GlobalNamespace::SharedCoroutineStarter::get_instance();
+        auto starter = BSML::SharedCoroutineStarter::get_instance();
         auto t = self->get_transform();
         starter->StartCoroutine(custom_types::Helpers::CoroutineHelper::New(FixPos(t)));
 

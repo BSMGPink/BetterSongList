@@ -2,7 +2,7 @@
 #include "Utils/LocalScoresUtils.hpp"
 #include "UnityEngine/Object.hpp"
 
-#include "questui/shared/CustomTypes/Components/MainThreadScheduler.hpp"
+#include "bsml/shared/BSML/MainThreadScheduler.hpp"
 
 namespace BetterSongList {
     PlayedFilter::PlayedFilter(bool unplayed) 
@@ -15,13 +15,13 @@ namespace BetterSongList {
     }
 
     std::future<void> PlayedFilter::Prepare() {
-        QuestUI::MainThreadScheduler::Schedule(LocalScoresUtils::Load);
+            BSML::MainThreadScheduler::Schedule(LocalScoresUtils::Load);
         return std::async(std::launch::deferred, [this](){
             while (!this->get_isReady()) std::this_thread::yield();
         });
     }
 
-    bool PlayedFilter::GetValueFor(GlobalNamespace::IPreviewBeatmapLevel* level) { 
+    bool PlayedFilter::GetValueFor(GlobalNamespace::BeatmapLevel* level) { 
         if (!get_isReady())
             return true;
 

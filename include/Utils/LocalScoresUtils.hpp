@@ -1,8 +1,8 @@
 #pragma once
 
-#include "GlobalNamespace/IPreviewBeatmapLevel.hpp"
+#include "GlobalNamespace/BeatmapLevel.hpp"
 namespace BetterSongList::LocalScoresUtils {
     bool get_hasScores();
-    bool HasLocalScore(GlobalNamespace::IPreviewBeatmapLevel* level);
+    bool HasLocalScore(GlobalNamespace::BeatmapLevel* level);
     void Load();
 }

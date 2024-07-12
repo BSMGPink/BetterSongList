@@ -11,7 +11,7 @@ MAKE_AUTO_HOOK_MATCH(LevelFilteringNavigationController_UpdateSecondChildControl
 }
 
 // from RestoreLevelSelection
-MAKE_AUTO_HOOK_MATCH(LevelFilteringNavigationController_ShowPacksInSecondChildController, &GlobalNamespace::LevelFilteringNavigationController::ShowPacksInSecondChildController, void, GlobalNamespace::LevelFilteringNavigationController* self, System::Collections::Generic::IReadOnlyList_1<::GlobalNamespace::IBeatmapLevelPack*>* beatmapLevelPacks) {
-    BetterSongList::Hooks::RestoreLevelSelection::LevelFilteringNavigationController_ShowPacksInSecondChildController_Prefix(self->levelPackIdToBeSelectedAfterPresent);
+MAKE_AUTO_HOOK_MATCH(LevelFilteringNavigationController_ShowPacksInSecondChildController, &GlobalNamespace::LevelFilteringNavigationController::ShowPacksInSecondChildController, void, GlobalNamespace::LevelFilteringNavigationController* self, System::Collections::Generic::IReadOnlyList_1<::GlobalNamespace::BeatmapLevelPack*>* beatmapLevelPacks) {
+    BetterSongList::Hooks::RestoreLevelSelection::LevelFilteringNavigationController_ShowPacksInSecondChildController_Prefix(self, self->_levelPackIdToBeSelectedAfterPresent);
     LevelFilteringNavigationController_ShowPacksInSecondChildController(self, beatmapLevelPacks);
 }

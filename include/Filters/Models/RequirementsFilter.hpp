@@ -1,7 +1,7 @@
 #pragma once
 
 #include "IFilter.hpp"
-#include "GlobalNamespace/CustomPreviewBeatmapLevel.hpp"
+#include "GlobalNamespace/BeatmapLevel.hpp"
 #include <vector>
 
 namespace BetterSongList {
@@ -13,7 +13,7 @@ namespace BetterSongList {
 
             virtual bool get_isReady() const override;
             virtual std::future<void> Prepare() override;
-            virtual bool GetValueFor(GlobalNamespace::IPreviewBeatmapLevel* level) override;
+            virtual bool GetValueFor(GlobalNamespace::BeatmapLevel* level) override;
         private:
             static bool inited;
             bool invert;
